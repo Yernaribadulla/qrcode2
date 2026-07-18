@@ -400,6 +400,8 @@
 <!-- Яндекс.Метрика -->
 <!-- Логика страницы -->
 <script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const baristaId = urlParams.get("staff");
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxohVlgR0mWam16mWCi0CTbF36RuD6JSveP9-z4XYLsyaqVGOt2JAbYt1w-f9Wv88xK/exec";
 
   const staffNames = {
