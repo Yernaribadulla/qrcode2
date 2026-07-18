@@ -398,35 +398,10 @@
 </div>
 
 <!-- Яндекс.Метрика -->
-<script type="text/javascript">
-  const urlParams = new URLSearchParams(window.location.search);
-  const baristaId = urlParams.get("staff");
-
-  (function(m,e,t,r,i,k,a){
-    m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-    m[i].l=1*new Date();
-    for (let j = 0; j < document.scripts.length; j++) {
-      if (document.scripts[j].src === r) { return; }
-    }
-    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a);
-  })(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-
-  // ЗАМЕНИЛИ ТУТ
-  ym(110849170, "init", {
-    clickmap: true,
-    trackLinks: true,
-    accurateTrackBounce: true,
-    webvisor: true,
-    params: { barista: baristaId || "unknown" }
-  });
-</script>
-<noscript>
-  <!-- И ЗАМЕНИЛИ ТУТ В ССЫЛКЕ Картинки -->
-  <div><img src="https://mc.yandex.ru/watch/110849170" style="position:absolute; left:-9999px;" alt="" /></div>
-</noscript>
-
 <!-- Логика страницы -->
 <script>
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxohVlgR0mWam16mWCi0CTbF36RuD6JSveP9-z4XYLsyaqVGOt2JAbYt1w-f9Wv88xK/exec";
+
   const staffNames = {
     islam: "Исламе",
     dias: "Диасе",
@@ -484,15 +459,33 @@
 
     const commentValue = document.getElementById("comment").value.trim();
 
-    // Необязательная цель для Метрики — раскомментируйте после настройки счётчика
-    // if (typeof ym === "function") {
-    //   ym(XXXXXX, "reachGoal", "feedback_submitted", {
-    //     barista: baristaId || "unknown",
-    //     rating: selectedRating,
-    //     hasComment: commentValue.length > 0
-    //   });
-    // }
+    // 1. ОТПРАВКА ДАННЫХ НА БЭКЕНД (Google Таблица + Telegram)
+    const feedbackData = {
+      barista: baristaId || "unknown",
+      rating: selectedRating,
+      comment: commentValue
+    };
 
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(feedbackData)
+    })
+    .catch(err => console.error('Ошибка отправки в базу:', err));
+
+    // 2. ОТПРАВКА ЦЕЛИ В ЯНДЕКС.МЕТРИКУ
+    if (typeof ym === "function") {
+      ym(110849170, "reachGoal", "feedback_submitted", {
+        barista: baristaId || "unknown",
+        rating: selectedRating,
+        hasComment: commentValue.length > 0
+      });
+    }
+
+    // 3. АНИМАЦИЯ УСПЕШНОЙ ОТПРАВКИ И ЭКРАН СПАСИБО
     document.getElementById("page").style.transition = "opacity 0.5s ease, transform 0.5s ease";
     document.getElementById("page").style.opacity = "0";
     document.getElementById("page").style.transform = "translateY(-12px)";
