@@ -1,0 +1,81 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Штиль · Отзывы</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ЭКРАН 1: ОЖИДАНИЕ -->
+  <section id="screen-main" class="screen is-active">
+    <div class="ambient"></div>
+
+    <div class="main-content">
+      <span class="eyebrow">Кофейня «Штиль» · Актау</span>
+      <h1 class="headline">Кто вас<br>обслужил?</h1>
+      <p class="subheadline">Выберите бариста, чтобы оставить отзыв о сервисе</p>
+
+      <div class="staff-grid">
+        <button class="staff-card" data-id="islam" data-name="Ислам">
+          <span class="staff-initial">И</span>
+          <span class="staff-name">Ислам</span>
+        </button>
+
+        <button class="staff-card" data-id="dias" data-name="Диас">
+          <span class="staff-initial">Д</span>
+          <span class="staff-name">Диас</span>
+        </button>
+
+        <button class="staff-card" data-id="baha" data-name="Баха">
+          <span class="staff-initial">Б</span>
+          <span class="staff-name">Баха</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="dock">Каспийское море · борт кофейни</div>
+  </section>
+
+  <!-- ЭКРАН 2: QR-КОД -->
+  <section id="screen-qr" class="screen">
+    <div class="qr-content">
+      <span class="eyebrow">Ваш бариста</span>
+      <h2 class="qr-title" id="qr-barista-name">Ислам</h2>
+      <p class="qr-subtitle">Наведите камеру телефона на код</p>
+
+      <div class="porthole">
+        <svg class="porthole-ring" viewBox="0 0 220 220">
+          <circle class="ring-track" cx="110" cy="110" r="100"></circle>
+          <circle class="ring-progress" id="ring-progress" cx="110" cy="110" r="100"></circle>
+        </svg>
+        <div class="porthole-glass">
+          <div id="qrcode"></div>
+        </div>
+      </div>
+
+      <div class="timer-row">
+        <span class="timer-label">Экран закроется через</span>
+        <span class="timer" id="timer">20</span>
+        <span class="timer-label">сек</span>
+      </div>
+
+      <button class="back-btn" id="back-btn">← Назад к выбору</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
