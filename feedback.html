@@ -461,11 +461,11 @@
 
     const commentValue = document.getElementById("comment").value.trim();
 
-    // 1. ОТПРАВКА ДАННЫХ НА БЭКЕНД (Google Таблица + Telegram)
+    // Собираем данные строго в правильном формате чисел и строк
     const feedbackData = {
-      barista: baristaId || "unknown",
-      rating: selectedRating,
-      comment: commentValue
+      barista: String(baristaId || "unknown"),
+      rating: Number(selectedRating), // Явно приводим к числу!
+      comment: String(commentValue)
     };
 
     fetch(GOOGLE_SCRIPT_URL, {
