@@ -353,6 +353,7 @@
   <span class="eyebrow">Кофейня «Штиль» · Актау</span>
   <h1 class="headline" id="headline">Оставьте отзыв о нашей кофейне</h1>
   <p class="subheadline">Ваше мнение помогает нам держать курс на качество</p>
+  
 
   <form id="feedback-form">
     <div class="field-block">
@@ -400,21 +401,25 @@
 <!-- Яндекс.Метрика -->
 <!-- Логика страницы -->
 <script>
+    // Если на странице есть селект выбора бариста — скрываем его, раз бариста уже известен из QR
+    const baristaSelectWrap = document.getElementById("barista-select-wrap") || document.querySelector(".barista-select-group");
+    if (baristaSelectWrap) {
+      baristaSelectWrap.style.display = "none";
+    };
   const urlParams = new URLSearchParams(window.location.search);
-  const baristaId = urlParams.get("staff");
+  const baristaId = urlParams.get("staff") || urlParams.get("barista");
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXMPd1JZebIeGPigGQDgPGndeJacY117CZdBWjANbRqkd0KgwJPurMKMiOwP4a8bEN/exec";
 
-  const staffNames = {
-    islam: "Исламе",
-    dias: "Диасе",
-    baha: "Бахе"
-  };
-
   const headlineEl = document.getElementById("headline");
-  const staffName = staffNames[baristaId];
 
-  if (staffName) {
-    headlineEl.textContent = "Оставьте отзыв о бариста " + staffName;
+  function capitalizeFirstLetter(text) {
+    if (!text) return "";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  if (baristaId) {
+    const displayName = capitalizeFirstLetter(baristaId);
+    headlineEl.textContent = "Оставьте отзыв о бариста — " + displayName;
   }
 
   const starsWrap = document.getElementById("stars");
