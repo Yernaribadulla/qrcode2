@@ -16,32 +16,21 @@
 
 <div id="app">
 
-  <!-- ЭКРАН 1: ОЖИДАНИЕ -->
-  <section id="screen-main" class="screen is-active">
-    <div class="ambient"></div>
+<!-- ЭКРАН 1: ОЖИДАНИЕ -->
+<section id="screen-main" class="screen is-active">
+  <div class="ambient"></div>
 
-    <div class="main-content">
-      <span class="eyebrow">Кофейня «Штиль» · Актау</span>
-      <h1 class="headline">Кто вас<br>обслужил?</h1>
-      <p class="subheadline">Выберите бариста, чтобы оставить отзыв о сервисе</p>
+  <div class="main-content">
+    <span class="eyebrow">Кофейня «Штиль» · Актау</span>
+    <h1 class="headline">Кто вас<br>обслужил?</h1>
+    <p class="subheadline">Выберите бариста, чтобы оставить отзыв о сервисе</p>
 
-      <div class="staff-grid">
-        <button class="staff-card" data-id="islam" data-name="Ислам">
-          <span class="staff-initial">И</span>
-          <span class="staff-name">Ислам</span>
-        </button>
-
-        <button class="staff-card" data-id="dias" data-name="Диас">
-          <span class="staff-initial">Д</span>
-          <span class="staff-name">Диас</span>
-        </button>
-
-        <button class="staff-card" data-id="baha" data-name="Баха">
-          <span class="staff-initial">Б</span>
-          <span class="staff-name">Баха</span>
-        </button>
-      </div>
+    <!-- Добавили data-barista-buttons, скрипт сам сюда сгенерирует кнопки -->
+    <div class="staff-grid" id="staff-grid" data-barista-buttons>
+      <!-- Контейнер пустой: app.js сам подтянет Ислама, Диаса, Баху и любого нового пацана из таблицы -->
     </div>
+  </div>
+</section>
 
     <div class="dock">Каспийское море · борт кофейни</div>
   </section>
