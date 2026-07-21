@@ -89,8 +89,8 @@
   .headline {
     font-family: var(--font-display);
     font-weight: 500;
-    font-size: 30px;
-    line-height: 1.22;
+    font-size: 28px;
+    line-height: 1.24;
     letter-spacing: -0.01em;
     text-align: center;
     margin-top: 16px;
@@ -183,6 +183,38 @@
     height: 18px;
     margin-top: 14px;
     letter-spacing: 0.02em;
+  }
+
+  /* Выбор бариста (виден только если staff не определён по URL) */
+
+  .barista-select-wrap {
+    margin-top: 8px;
+    display: none;
+  }
+
+  .barista-select-wrap.is-visible {
+    display: block;
+  }
+
+  .barista-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--color-panel) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23c9a667" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>') no-repeat right 16px center / 14px;
+    border: 1px solid var(--color-line);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    padding: 14px 40px 14px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+  }
+
+  .barista-select:focus {
+    outline: none;
+    border-color: var(--color-brass);
   }
 
   /* Комментарий */
@@ -377,6 +409,14 @@
       <div class="rating-caption" id="rating-caption"></div>
     </div>
 
+    <!-- Виден только если staff не передан в URL — тогда клиент выбирает бариста сам -->
+    <div class="field-block barista-select-wrap" id="barista-select-wrap">
+      <span class="field-label">О ком отзыв?</span>
+      <select class="barista-select" id="barista-select" data-barista-select>
+        <option value="">Выберите бариста</option>
+      </select>
+    </div>
+
     <div class="field-block comment-wrap">
       <span class="field-label">Комментарий (по желанию)</span>
       <textarea id="comment" placeholder="Что понравилось, а что можно улучшить?"></textarea>
@@ -398,137 +438,207 @@
 </div>
 
 <!-- Яндекс.Метрика -->
+<script type="text/javascript">
+  (function(m,e,t,r,i,k,a){
+    m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+    m[i].l=1*new Date();
+    for (let j = 0; j < document.scripts.length; j++) {
+      if (document.scripts[j].src === r) { return; }
+    }
+    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a);
+  })(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+</script>
+<noscript>
+  <div><img src="https://mc.yandex.ru/watch/XXXXXX" style="position:absolute; left:-9999px;" alt="" /></div>
+</noscript>
+
 <!-- Логика страницы -->
 <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const baristaId = urlParams.get("staff");
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXMPd1JZebIeGPigGQDgPGndeJacY117CZdBWjANbRqkd0KgwJPurMKMiOwP4a8bEN/exec";
+  /* ---------- Настройки интеграции ---------- */
 
-  const staffNames = {
-    islam: "Исламе",
-    dias: "Диасе",
-    baha: "Бахе"
+  // URL веб-приложения Google Apps Script, которое пишет строку в лист "Visits" (gid=1292898986)
+  // Замените на реальный /exec URL после деплоя скрипта
+  const SCAN_LOG_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+
+  // Известные бариста: короткий id -> имя в предложном падеже, для грамотного заголовка.
+  // Любой id, которого нет в этом списке, всё равно подставится — просто с первой заглавной буквой.
+  const staffNamesPrepositional = {
+    islam: 'Исламе',
+    dias: 'Диасе',
+    baha: 'Бахе'
   };
 
-  const headlineEl = document.getElementById("headline");
-  const staffName = staffNames[baristaId];
+  // Список для автоподстановки в select (id -> отображаемое имя в именительном падеже)
+  const staffNamesNominative = {
+    islam: 'Ислам',
+    dias: 'Диас',
+    baha: 'Баха'
+  };
 
-  if (staffName) {
-    headlineEl.textContent = "Оставьте отзыв о бариста " + staffName;
+  /* ---------- Чтение staff/barista из URL ---------- */
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const staffId = urlParams.get('staff') || urlParams.get('barista') || '';
+
+  function capitalizeFirstLetter(text) {
+    if (!text) return '';
+    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
-  const starsWrap = document.getElementById("stars");
-  const starButtons = document.querySelectorAll(".star-btn");
-  const ratingCaption = document.getElementById("rating-caption");
-  const form = document.getElementById("feedback-form");
-  const thanksScreen = document.getElementById("thanks-screen");
+  /* ---------- Подстановка имени в заголовок ---------- */
+
+  const headlineEl = document.getElementById('headline');
+
+  if (staffId) {
+    const normalizedId = staffId.trim().toLowerCase();
+    const prepositionalName = staffNamesPrepositional[normalizedId];
+
+    if (prepositionalName) {
+      headlineEl.textContent = `Оставьте отзыв о бариста — ${prepositionalName}`;
+    } else {
+      // Неизвестный id — просто делаем первую букву заглавной и подставляем как есть
+      headlineEl.textContent = `Оставьте отзыв о бариста — ${capitalizeFirstLetter(staffId)}`;
+    }
+  }
+
+  /* ---------- Автовыбор бариста в форме ---------- */
+
+  const baristaSelectWrap = document.getElementById('barista-select-wrap');
+  const baristaSelect = document.getElementById('barista-select');
+
+  // Заполняем select известными именами (на случай, если staff не передан)
+  Object.keys(staffNamesNominative).forEach((id) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = staffNamesNominative[id];
+    baristaSelect.appendChild(option);
+  });
+
+  if (staffId) {
+    const normalizedId = staffId.trim().toLowerCase();
+    // Если id уже есть в select — выбираем его, иначе добавляем новый пункт "на лету"
+    let matchingOption = Array.from(baristaSelect.options).find((opt) => opt.value === normalizedId);
+    if (!matchingOption) {
+      matchingOption = document.createElement('option');
+      matchingOption.value = normalizedId;
+      matchingOption.textContent = staffNamesNominative[normalizedId] || capitalizeFirstLetter(staffId);
+      baristaSelect.appendChild(matchingOption);
+    }
+    baristaSelect.value = normalizedId;
+    // Бариста уже известен по QR-коду — не показываем клиенту лишний выбор
+    baristaSelectWrap.classList.remove('is-visible');
+  } else {
+    // Staff не передан — даём клиенту выбрать бариста самостоятельно
+    baristaSelectWrap.classList.add('is-visible');
+  }
+
+  /* ---------- Инициализация Яндекс.Метрики с учётом бариста ---------- */
+
+  ym(XXXXXX, "init", {
+    clickmap: true,
+    trackLinks: true,
+    accurateTrackBounce: true,
+    webvisor: true,
+    params: { barista: staffId || "unknown" }
+  });
+
+  /* ---------- Фиксация скана QR в Google Таблице (лист Visits) ---------- */
+
+  function logScanToSheet(baristaId) {
+    if (!baristaId || !SCAN_LOG_URL || SCAN_LOG_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL') return;
+
+    // Не логируем повторно, если страницу перезагрузили в рамках той же сессии браузера
+    const dedupeKey = `scan_logged_${baristaId}`;
+    if (sessionStorage.getItem(dedupeKey)) return;
+
+    const payload = new URLSearchParams({
+      barista: baristaId,
+      timestamp: new Date().toISOString()
+    });
+
+    // Apps Script Web App обычно не отдаёт CORS-заголовки для чтения ответа,
+    // поэтому используем no-cors: запрос уходит и пишет строку в таблицу,
+    // но сам ответ мы не читаем — это ожидаемо и не является ошибкой.
+    fetch(SCAN_LOG_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: payload.toString()
+    }).catch((error) => {
+      console.warn('Не удалось зафиксировать скан в таблице.', error);
+    });
+
+    sessionStorage.setItem(dedupeKey, '1');
+  }
+
+  if (staffId) {
+    logScanToSheet(staffId.trim().toLowerCase());
+  }
+
+  /* ---------- Логика оценки и отправки формы ---------- */
+
+  const starsWrap = document.getElementById('stars');
+  const starButtons = document.querySelectorAll('.star-btn');
+  const ratingCaption = document.getElementById('rating-caption');
+  const form = document.getElementById('feedback-form');
+  const thanksScreen = document.getElementById('thanks-screen');
 
   const ratingLabels = {
-    1: "Совсем не понравилось",
-    2: "Могло быть лучше",
-    3: "В целом неплохо",
-    4: "Хорошо",
-    5: "Отлично!"
+    1: 'Совсем не понравилось',
+    2: 'Могло быть лучше',
+    3: 'В целом неплохо',
+    4: 'Хорошо',
+    5: 'Отлично!'
   };
 
   let selectedRating = 0;
 
   function renderStars(value) {
     starButtons.forEach((btn) => {
-      const btnValue = Number(btn.getAttribute("data-value"));
-      btn.classList.toggle("is-active", btnValue <= value);
+      const btnValue = Number(btn.getAttribute('data-value'));
+      btn.classList.toggle('is-active', btnValue <= value);
     });
-    ratingCaption.textContent = value ? ratingLabels[value] : "";
+    ratingCaption.textContent = value ? ratingLabels[value] : '';
   }
 
   starButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      selectedRating = Number(btn.getAttribute("data-value"));
+    btn.addEventListener('click', () => {
+      selectedRating = Number(btn.getAttribute('data-value'));
       renderStars(selectedRating);
     });
   });
 
-  form.addEventListener("submit", function (event) {
+  form.addEventListener('submit', function (event) {
     event.preventDefault();
 
     if (selectedRating === 0) {
-      starsWrap.classList.remove("is-shake");
-      // перезапуск анимации
+      starsWrap.classList.remove('is-shake');
       void starsWrap.offsetWidth;
-      starsWrap.classList.add("is-shake");
+      starsWrap.classList.add('is-shake');
       return;
     }
 
-    const commentValue = document.getElementById("comment").value.trim();
+    const finalBaristaId = staffId ? staffId.trim().toLowerCase() : baristaSelect.value;
+    const commentValue = document.getElementById('comment').value.trim();
 
-    // Собираем данные строго в правильном формате чисел и строк
-    const feedbackData = {
-      barista: String(baristaId || "unknown"),
-      rating: Number(selectedRating), // Явно приводим к числу!
-      comment: String(commentValue)
-    };
+    // Необязательная цель для Метрики — раскомментируйте после настройки счётчика
+    // if (typeof ym === "function") {
+    //   ym(XXXXXX, "reachGoal", "feedback_submitted", {
+    //     barista: finalBaristaId || "unknown",
+    //     rating: selectedRating,
+    //     hasComment: commentValue.length > 0
+    //   });
+    // }
 
-    fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(feedbackData)
-    })
-    .catch(err => console.error('Ошибка отправки в базу:', err));
-
-    // 2. ОТПРАВКА ЦЕЛИ В ЯНДЕКС.МЕТРИКУ
-    if (typeof ym === "function") {
-      ym(110849170, "reachGoal", "feedback_submitted", {
-        barista: baristaId || "unknown",
-        rating: selectedRating,
-        hasComment: commentValue.length > 0
-      });
-    }
-
-    // 3. АНИМАЦИЯ УСПЕШНОЙ ОТПРАВКИ И ЭКРАН СПАСИБО
-    document.getElementById("page").style.transition = "opacity 0.5s ease, transform 0.5s ease";
-    document.getElementById("page").style.opacity = "0";
-    document.getElementById("page").style.transform = "translateY(-12px)";
+    document.getElementById('page').style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    document.getElementById('page').style.opacity = '0';
+    document.getElementById('page').style.transform = 'translateY(-12px)';
 
     setTimeout(() => {
-      thanksScreen.classList.add("is-visible");
+      thanksScreen.classList.add('is-visible');
     }, 350);
   });
 </script>
-  <!-- Yandex.Metrika counter -->
-<script type="text/javascript" >
-   (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-   m[i].l=1*new Date();
-   for (var j = 0; j < e.length; j++) {if (e[j].className === t) {return;}}
-   k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-
-   // Инициализация твоего счётчика 110849170
-   ym(110849170, "init", {
-        clickmap:true,
-        trackLinks:true,
-        accurateTrackBounce:true,
-        webvisor:true
-   });
-
-   // АВТОМАТИЧЕСКИЙ СБОР БАРИСТА В ОТЧЁТЫ
-   try {
-       const urlParams = new URLSearchParams(window.location.search);
-       const staffName = urlParams.get('staff'); // Вытаскиваем islam, baha и т.д.
-
-       if (staffName) {
-           ym(110849170, 'params', {
-               "Бариста": staffName
-           });
-       }
-   } catch(e) {
-       console.error("Ошибка отправки параметров в Метрику:", e);
-   }
-</script>
-<noscript><div><img src="https://mc.yandex.ru/watch/110849170" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-<!-- /Yandex.Metrika counter -->
 
 </body>
 </html>
