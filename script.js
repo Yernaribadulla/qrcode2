@@ -2,21 +2,8 @@
   "use strict";
 
   const SHEET_ID = "1ZS1EXykP93modWYpw0_6CXXpk3NIe7e9-VkTSdSFZVE";
+  // Лист «Баристы» — список активных сотрудников для главного экрана
   const BARISTA_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=1292898986`;
-  
-  // 1. Достаём имя из URL-параметра (staff или barista)
-const urlParams = new URLSearchParams(window.location.search);
-const baristaId = urlParams.get("staff") || urlParams.get("barista");
-
-// 2. Ждём загрузки DOM и меняем заголовок
-window.addEventListener("DOMContentLoaded", () => {
-  const headlineEl = document.getElementById("headline");
-  if (baristaId && headlineEl) {
-    const cleanName = decodeURIComponent(baristaId).trim();
-    const displayName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-    headlineEl.textContent = "Оставьте отзыв о бариста — " + displayName;
-  }
-});
 
   const BASE_URL = "https://yernaribadulla.github.io/qrcode2/feedback.html?staff=";
   const DURATION_SECONDS = 20;
@@ -109,6 +96,7 @@ window.addEventListener("DOMContentLoaded", () => {
     startRingDrain(DURATION_SECONDS);
     startCountdown();
 
+    pauseCarousel(true); // на экране QR карусель не нужна — просто держим её на паузе
     screenMain.classList.remove("is-active");
     screenQR.classList.add("is-active");
   }
@@ -119,6 +107,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     screenQR.classList.remove("is-active");
     screenMain.classList.add("is-active");
+    pauseCarousel(false);
+    scheduleAutoplayResume();
   }
 
   // 6. Динамическая загрузка списка бариста из Google Sheets
@@ -180,6 +170,8 @@ window.addEventListener("DOMContentLoaded", () => {
       `;
 
       button.addEventListener("click", (event) => {
+        // Если это был drag, а не клик — клик не засчитываем (см. carousel-логику ниже)
+        if (carouselJustDragged) return;
         createRipple(event, button);
         const staffId = button.getAttribute("data-id");
         const staffName = button.getAttribute("data-name");
@@ -187,6 +179,147 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
       staffGrid.appendChild(button);
+    });
+
+    initCarouselDimensions();
+  }
+
+  /* ============================================================
+     КАРУСЕЛЬ: авто-скролл (пинг-понг), драг мышью, тач-свайп,
+     колесо мыши, пауза при взаимодействии + возобновление через 2с
+     ============================================================ */
+
+  const AUTOPLAY_SPEED_PX_PER_FRAME = 0.35; // медленный, размеренный дрейф
+  const RESUME_DELAY_MS = 2000;
+
+  let autoplayDirection = 1;
+  let autoplayRafId = null;
+  let isAutoplayPaused = false;
+  let isUserInteracting = false;
+  let resumeTimeoutId = null;
+
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartScrollLeft = 0;
+  let carouselJustDragged = false;
+
+  function initCarouselDimensions() {
+    if (!staffGrid) return;
+    // Стартуем автопрокрутку заново после перерендера кнопок
+    stopAutoplayLoop();
+    startAutoplayLoop();
+  }
+
+  function pauseCarousel(pause) {
+    isAutoplayPaused = pause;
+    if (pause) {
+      stopAutoplayLoop();
+    } else if (!isUserInteracting) {
+      startAutoplayLoop();
+    }
+  }
+
+  function startAutoplayLoop() {
+    if (!staffGrid || isAutoplayPaused || isUserInteracting || autoplayRafId) return;
+
+    function step() {
+      if (!staffGrid || isAutoplayPaused || isUserInteracting) {
+        autoplayRafId = null;
+        return;
+      }
+
+      const maxScroll = staffGrid.scrollWidth - staffGrid.clientWidth;
+
+      if (maxScroll <= 0) {
+        // Все карточки помещаются — крутить нечего
+        autoplayRafId = null;
+        return;
+      }
+
+      staffGrid.scrollLeft += AUTOPLAY_SPEED_PX_PER_FRAME * autoplayDirection;
+
+      if (staffGrid.scrollLeft >= maxScroll - 1) {
+        autoplayDirection = -1;
+      } else if (staffGrid.scrollLeft <= 1) {
+        autoplayDirection = 1;
+      }
+
+      autoplayRafId = requestAnimationFrame(step);
+    }
+
+    autoplayRafId = requestAnimationFrame(step);
+  }
+
+  function stopAutoplayLoop() {
+    if (autoplayRafId) {
+      cancelAnimationFrame(autoplayRafId);
+      autoplayRafId = null;
+    }
+  }
+
+  function scheduleAutoplayResume() {
+    clearTimeout(resumeTimeoutId);
+    resumeTimeoutId = setTimeout(() => {
+      isUserInteracting = false;
+      startAutoplayLoop();
+    }, RESUME_DELAY_MS);
+  }
+
+  function onInteractionStart() {
+    isUserInteracting = true;
+    stopAutoplayLoop();
+    clearTimeout(resumeTimeoutId);
+  }
+
+  function onInteractionEnd() {
+    scheduleAutoplayResume();
+  }
+
+  if (staffGrid) {
+    // Колесо мыши / трекпад — как ручной свайп: сразу ставим на паузу
+    staffGrid.addEventListener("wheel", () => {
+      onInteractionStart();
+      onInteractionEnd();
+    }, { passive: true });
+
+    // Тач-свайп (нативный скролл на телефонах/планшетах)
+    staffGrid.addEventListener("touchstart", onInteractionStart, { passive: true });
+    staffGrid.addEventListener("touchend", onInteractionEnd, { passive: true });
+    staffGrid.addEventListener("touchcancel", onInteractionEnd, { passive: true });
+
+    // Драг мышью (десктоп)
+    staffGrid.addEventListener("mousedown", (event) => {
+      isDragging = true;
+      carouselJustDragged = false;
+      dragStartX = event.clientX;
+      dragStartScrollLeft = staffGrid.scrollLeft;
+      staffGrid.classList.add("is-dragging");
+      onInteractionStart();
+    });
+
+    window.addEventListener("mousemove", (event) => {
+      if (!isDragging) return;
+      const delta = event.clientX - dragStartX;
+      if (Math.abs(delta) > 4) carouselJustDragged = true;
+      staffGrid.scrollLeft = dragStartScrollLeft - delta;
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!isDragging) return;
+      isDragging = false;
+      staffGrid.classList.remove("is-dragging");
+      onInteractionEnd();
+      // Сбрасываем флаг "это был драг" чуть позже, чтобы клик по кнопке
+      // сразу после отпускания мыши не сработал случайно
+      setTimeout(() => { carouselJustDragged = false; }, 50);
+    });
+
+    staffGrid.addEventListener("mouseleave", () => {
+      if (isDragging) {
+        isDragging = false;
+        staffGrid.classList.remove("is-dragging");
+        onInteractionEnd();
+      }
     });
   }
 
