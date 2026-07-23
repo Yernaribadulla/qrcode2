@@ -401,6 +401,38 @@
 <!-- Яндекс.Метрика -->
 <!-- Логика страницы -->
 <script>
+  window.addEventListener("DOMContentLoaded", () => {
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXMPd1JZebIeGPigGQDgPGndeJacY117CZdBWjANbRqkd0KgwJPurMKMiOwP4a8bEN/exec";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const baristaId = urlParams.get("staff") || urlParams.get("barista");
+
+  // 1. Меняем заголовок
+  const headlineEl = document.getElementById("headline");
+  if (baristaId && headlineEl) {
+    const displayName = baristaId.charAt(0).toUpperCase() + baristaId.slice(1);
+    headlineEl.textContent = "Оставьте отзыв о бариста — " + displayName;
+  }
+
+  // 2. Логируем скан с защитой от повторов при F5/перезагрузке
+  if (baristaId) {
+    const sessionKey = "scanned_" + baristaId.toLowerCase();
+
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, "true");
+
+      // Отправляем скан (без rating!), чтобы Apps Script сработал по СЦЕНАРИЮ А
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          barista: baristaId
+        })
+      }).catch(err => console.error("Ошибка логирования скана:", err));
+    }
+  }
+});
     // Если на странице есть селект выбора бариста — скрываем его, раз бариста уже известен из QR
     const baristaSelectWrap = document.getElementById("barista-select-wrap") || document.querySelector(".barista-select-group");
     if (baristaSelectWrap) {
