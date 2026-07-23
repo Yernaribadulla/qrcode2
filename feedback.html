@@ -474,21 +474,26 @@
   // Отправляем без поля rating, чтобы doPost() на бэкенде записал именно скан,
   // а не отзыв. Защита от дублей при перезагрузке — sessionStorage.
 
-  if (baristaId) {
+ if (baristaId) {
     const scanSessionKey = "scan_logged_" + baristaId.toLowerCase();
 
     if (!sessionStorage.getItem(scanSessionKey)) {
-      sessionStorage.setItem(scanSessionKey, "1");
-      console.log("Отправляю скан:", baristaId);
+        sessionStorage.setItem(scanSessionKey, "1");
 
-      fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barista: baristaId })
-      }).catch((err) => console.warn("Не удалось зафиксировать скан:", err));
+        alert("Отправляю скан: " + baristaId);
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                barista: baristaId
+            })
+        }).catch(err => console.warn(err));
     }
-  }
+}
 
   /* ---------- Звёзды ---------- */
 
