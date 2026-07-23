@@ -95,6 +95,7 @@ html, body {
   align-items: center;
   text-align: center;
   z-index: 1;
+  width: 100%;
 }
 
 .eyebrow {
@@ -125,14 +126,46 @@ html, body {
   margin-bottom: 64px;
 }
 
+/* ---------- Карусель бариста ---------- */
+
+.carousel-viewport {
+  position: relative;
+  width: min(1040px, 88vw);
+  /* Плавное затухание краёв контейнера — сигнализирует, что список прокручиваемый */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 64px, black calc(100% - 64px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 64px, black calc(100% - 64px), transparent 100%);
+}
+
 .staff-grid {
   display: flex;
   gap: 28px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-behavior: auto;
+  padding: 4px 64px;
+  cursor: grab;
+
+  /* Прячем нативный скроллбар во всех движках */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.staff-grid::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.staff-grid.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
 }
 
 .staff-card {
   position: relative;
   overflow: hidden;
+  flex: 0 0 auto;
   width: 220px;
   height: 260px;
   display: flex;
@@ -144,6 +177,7 @@ html, body {
   border: 1px solid var(--color-line);
   border-radius: 8px;
   cursor: pointer;
+  scroll-snap-align: center;
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
               border-color 0.35s ease,
               background 0.35s ease,
