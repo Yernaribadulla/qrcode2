@@ -479,6 +479,7 @@
 
     if (!sessionStorage.getItem(scanSessionKey)) {
       sessionStorage.setItem(scanSessionKey, "1");
+      console.log("Отправляю скан:", baristaId);
 
       fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
