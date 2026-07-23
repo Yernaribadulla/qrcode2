@@ -3,6 +3,20 @@
 
   const SHEET_ID = "1ZS1EXykP93modWYpw0_6CXXpk3NIe7e9-VkTSdSFZVE";
   const BARISTA_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=1292898986`;
+  
+  // 1. Достаём имя из URL-параметра (staff или barista)
+const urlParams = new URLSearchParams(window.location.search);
+const baristaId = urlParams.get("staff") || urlParams.get("barista");
+
+// 2. Ждём загрузки DOM и меняем заголовок
+window.addEventListener("DOMContentLoaded", () => {
+  const headlineEl = document.getElementById("headline");
+  if (baristaId && headlineEl) {
+    const cleanName = decodeURIComponent(baristaId).trim();
+    const displayName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+    headlineEl.textContent = "Оставьте отзыв о бариста — " + displayName;
+  }
+});
 
   const BASE_URL = "https://yernaribadulla.github.io/qrcode2/feedback.html?staff=";
   const DURATION_SECONDS = 20;
