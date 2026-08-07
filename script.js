@@ -180,6 +180,7 @@
 
       staffGrid.appendChild(button);
     });
+    
 
     initCarouselDimensions();
   }
