@@ -442,10 +442,54 @@
 
 <div id="thanks-screen">
   <div class="thanks-mark">
-    <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+    <svg viewBox="0 0 24 24">
+      <path d="M5 13l4 4L19 7"/>
+    </svg>
   </div>
+
   <h2 class="thanks-title">Спасибо за ваш отзыв!</h2>
-  <p class="thanks-subtitle">Вы помогаете нам стать лучше на волнах Каспия.</p>
+
+  <p class="thanks-subtitle">
+    Вы помогаете нам стать лучше на волнах Каспия.
+  </p>
+
+  <div class="platform-review">
+    <div class="platform-review-title">
+      Оставьте отзыв о кофейне, пожалуйста!
+    </div>
+
+    <div class="platform-buttons">
+      <a
+        class="platform-btn"
+        href="https://go.2gis.com/69d1W"
+        data-platform="2gis"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        2GIS
+      </a>
+
+      <a
+        class="platform-btn"
+        href="https://yandex.kz/maps/ru/-/CTG-jA~0"
+        data-platform="yandex"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Яндекс
+      </a>
+
+      <a
+        class="platform-btn"
+        href="https://www.instagram.com/tequiero_coffee_sea"
+        data-platform="instagram"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Instagram
+      </a>
+    </div>
+  </div>
 </div>
 
 <!-- Логика страницы -->
@@ -598,10 +642,38 @@
         }, 350);
       });
   });
+  // ---------- Отслеживание переходов на платформы ----------
+
+const platformButtons = document.querySelectorAll(".platform-btn");
+
+platformButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const platform = button.getAttribute("data-platform");
+
+    if (!platform) return;
+
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+      },
+      body: new URLSearchParams({
+        type: "platform_click",
+        barista: String(baristaId || "unknown"),
+        platform: platform
+      }).toString()
+    }).catch((err) => {
+      console.warn("Не удалось записать переход:", err);
+    });
+  });
+});
+  
 </script>
 
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript">
+  
   (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
   m[i].l=1*new Date();
   for (let j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
