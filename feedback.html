@@ -308,9 +308,12 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
     text-align: center;
     padding: 32px;
-    background: radial-gradient(120% 60% at 50% 0%, var(--color-bg) 0%, var(--color-bg-deep) 100%);
+    background: radial-gradient(130% 75% at 50% 8%, var(--color-bg) 0%, var(--color-bg-deep) 100%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
   }
 
   #thanks-screen.is-visible {
@@ -318,23 +321,103 @@
     opacity: 1;
   }
 
+  /* Слои "моря" — только градиенты, без картинок/canvas */
+
+  .thanks-waves {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    animation: thanksLayerIn 1.4s ease forwards;
+  }
+
+  .thanks-wave {
+    position: absolute;
+    left: -20%;
+    right: -20%;
+    height: 220px;
+    will-change: transform;
+  }
+
+  .thanks-wave--a {
+    bottom: -40px;
+    opacity: 0.9;
+    background: repeating-linear-gradient(
+      100deg, transparent 0, transparent 60px,
+      rgba(201, 166, 103, 0.045) 60px, rgba(201, 166, 103, 0.045) 62px,
+      transparent 62px, transparent 140px
+    );
+    animation: waveDriftA 46s linear infinite;
+  }
+
+  .thanks-wave--b {
+    bottom: 40px;
+    height: 260px;
+    opacity: 0.5;
+    background: repeating-linear-gradient(
+      100deg, transparent 0, transparent 90px,
+      rgba(90, 140, 155, 0.06) 90px, rgba(90, 140, 155, 0.06) 92px,
+      transparent 92px, transparent 200px
+    );
+    animation: waveDriftB 68s linear infinite;
+  }
+
+  /* Мягкое золотистое свечение — будто отражение света кофейни на воде */
+  .thanks-glow {
+    position: absolute;
+    top: 6%;
+    left: 50%;
+    width: 480px;
+    height: 480px;
+    transform: translateX(-50%);
+    background: radial-gradient(circle, rgba(201, 166, 103, 0.14) 0%, transparent 70%);
+    animation: glowPulse 9s ease-in-out infinite;
+  }
+
+  /* Едва заметный блик-горизонт */
+  .thanks-shimmer {
+    position: absolute;
+    left: -30%;
+    right: -30%;
+    bottom: 28%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(223, 192, 136, 0.35), transparent);
+    background-size: 200% 100%;
+    animation: shimmerDrift 12s ease-in-out infinite;
+  }
+
+  @keyframes thanksLayerIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes waveDriftA { from { transform: translateX(0); } to { transform: translateX(-140px); } }
+  @keyframes waveDriftB { from { transform: translateX(0); } to { transform: translateX(120px); } }
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.55; transform: translateX(-50%) scale(1); }
+    50%      { opacity: 0.85; transform: translateX(-50%) scale(1.06); }
+  }
+  @keyframes shimmerDrift {
+    0%, 100% { background-position: 0% 0%; opacity: 0.5; }
+    50%      { background-position: 100% 0%; opacity: 0.9; }
+  }
+
   .thanks-mark {
-    width: 76px;
-    height: 76px;
+    position: relative;
+    z-index: 1;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
     border: 1px solid var(--color-brass);
     background: var(--color-brass-dim);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
     transform: scale(0.7);
     opacity: 0;
     animation: markIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     animation-delay: 0.15s;
   }
 
-  .thanks-mark svg { width: 30px; height: 30px; }
+  .thanks-mark svg { width: 28px; height: 28px; }
 
   .thanks-mark path {
     fill: none;
@@ -345,24 +428,90 @@
   }
 
   .thanks-title {
+    position: relative;
+    z-index: 1;
     font-family: var(--font-display);
     font-weight: 500;
-    font-size: 26px;
+    font-size: 25px;
     line-height: 1.3;
+    color: var(--color-text);
     opacity: 0;
     animation: riseIn 0.6s ease forwards;
     animation-delay: 0.3s;
   }
 
   .thanks-subtitle {
-    margin-top: 14px;
-    font-size: 14px;
+    position: relative;
+    z-index: 1;
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
     color: var(--color-text-muted);
-    max-width: 300px;
-    line-height: 1.6;
     opacity: 0;
     animation: riseIn 0.6s ease forwards;
     animation-delay: 0.4s;
+  }
+
+  /* Кнопки платформ — анимация только на обёртке .platform-review;
+     сами кнопки и иконки всегда opacity: 1, никаких сюрпризов при hover/active */
+
+  .platform-review {
+    position: relative;
+    z-index: 1;
+    margin-top: 26px;
+    opacity: 0;
+    animation: riseIn 0.6s ease forwards;
+    animation-delay: 0.55s;
+  }
+
+  .platform-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 9px;
+  }
+
+  .platform-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 78px;
+    height: 72px;
+    padding: 8px 6px;
+    background: rgba(16, 34, 43, 0.72);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease, transform 0.2s ease;
+  }
+
+  .platform-btn:hover {
+    border-color: var(--color-brass);
+    color: var(--color-text);
+    background: var(--color-panel-alt);
+  }
+
+  .platform-btn:active {
+    transform: scale(0.94);
+  }
+
+  .platform-btn:focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
+  }
+
+  .platform-icon {
+    width: 22px;
+    height: 22px;
+    color: var(--color-brass-bright);
   }
 
   /* ---------- Анимации ---------- */
@@ -387,67 +536,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
+    .thanks-wave { opacity: 0.35; }
   }
-  /* FINAL OVERRIDE — platform buttons */
-.platform-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.platform-btn {
-  width: 68px;
-  height: 68px;
-  padding: 8px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-
-  background: var(--color-panel);
-  border: 1px solid var(--color-line);
-  border-radius: 12px;
-
-  color: var(--color-text-muted);
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 500;
-
-  cursor: pointer;
-  text-decoration: none;
-
-  transition:
-    border-color 0.25s ease,
-    color 0.25s ease,
-    background 0.25s ease,
-    transform 0.2s ease;
-    
-}
-
-.platform-icon {
-  width: 21px;
-  height: 21px;
-  flex-shrink: 0;
-  color: var(--color-brass-bright);
-}
-
-.platform-btn:hover {
-  border-color: var(--color-brass);
-  color: var(--color-text);
-  background: var(--color-panel-alt);
-}
-
-.platform-btn:active {
-  transform: scale(0.94);
-}
-
-.platform-btn:focus-visible {
-  outline: 2px solid var(--color-brass);
-  outline-offset: 3px;
-}
-
 </style>
 </head>
 <body>
@@ -500,105 +590,48 @@
 
 <div id="thanks-screen">
   <div class="thanks-waves" aria-hidden="true">
-  <div class="thanks-wave thanks-wave--a"></div>
-  <div class="thanks-wave thanks-wave--b"></div>
-</div>
+    <div class="thanks-wave thanks-wave--a"></div>
+    <div class="thanks-wave thanks-wave--b"></div>
+  </div>
+  <div class="thanks-glow" aria-hidden="true"></div>
+  <div class="thanks-shimmer" aria-hidden="true"></div>
 
-<div class="thanks-glow" aria-hidden="true"></div>
-<div class="thanks-shimmer" aria-hidden="true"></div>
   <div class="thanks-mark">
-    <svg viewBox="0 0 24 24">
-      <path d="M5 13l4 4L19 7"/>
-    </svg>
+    <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
   </div>
 
-  <h2 class="thanks-title">Спасибо за ваш отзыв!</h2>
-
-  <p class="thanks-subtitle">
-    Вы помогаете нам стать лучше на волнах Каспия.
-    Оставьте отзыв на других площадках
-  </p>
+  <h2 class="thanks-title">Спасибо за отзыв!</h2>
+  <p class="thanks-subtitle">Оставьте отзыв о нас:</p>
 
   <div class="platform-review">
-  <div class="platform-review-title">
-     
+    <div class="platform-buttons">
+      <a class="platform-btn" href="https://go.2gis.com/69d1W" data-platform="2gis" target="_blank" rel="noopener noreferrer" aria-label="Оставить отзыв на 2ГИС">
+        <svg class="platform-icon" viewBox="0 0 24 24" fill="none">
+          <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="12" cy="9.3" r="2.2" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span>2ГИС</span>
+      </a>
+
+      <a class="platform-btn" href="https://yandex.kz/maps/ru/-/CTG-jA~0" data-platform="yandex" target="_blank" rel="noopener noreferrer" aria-label="Оставить отзыв на Яндекс Картах">
+        <svg class="platform-icon" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 7.2v9.6M8.6 10l3.4-2.8L15.4 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Яндекс</span>
+      </a>
+
+      <a class="platform-btn" href="https://www.instagram.com/tequiero_coffee_sea" data-platform="instagram" target="_blank" rel="noopener noreferrer" aria-label="Перейти в Instagram">
+        <svg class="platform-icon" viewBox="0 0 24 24" fill="none">
+          <rect x="4" y="4" width="16" height="16" rx="5" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="12" cy="12" r="3.6" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="16.6" cy="7.4" r="0.9" fill="currentColor"/>
+        </svg>
+        <span>Instagram</span>
+      </a>
+    </div>
   </div>
-
-  <div class="platform-review-subtitle">
-   
-  </div>
-
-  <div class="platform-buttons">
-  <a
-    class="platform-btn"
-    href="https://go.2gis.com/69d1W"
-    data-platform="2gis"
-    target="_blank"
-    rel="noopener noreferrer"
-    aria-label="Оставить отзыв на 2ГИС"
-  >
-    <svg class="platform-icon" viewBox="0 0 24 24" fill="none">
-      <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21z"
-            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-      <circle cx="12" cy="9.3" r="2.2"
-              stroke="currentColor" stroke-width="1.6"/>
-    </svg>
-    <span>2ГИС</span>
-  </a>
-
-<a
-class="platform-btn"
-href="https://yandex.kz/maps/ru/-/CTG-jA~0"
-data-platform="yandex"
-target="_blank"
-rel="noopener noreferrer"
-aria-label="Оставить отзыв на Яндекс Картах"
-
->
-
-```
-<svg class="platform-icon" viewBox="0 0 24 24" fill="none">
-```
-
-```
-  <circle cx="12" cy="12" r="8.2"
-          stroke="currentColor" stroke-width="1.6"/>
-  <path d="M12 7.2v9.6M8.6 10l3.4-2.8L15.4 10"
-        stroke="currentColor" stroke-width="1.6"
-        stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-<span>Яндекс</span>
-```
-
-  </a>
-
-<a
-class="platform-btn"
-href="https://www.instagram.com/tequiero_coffee_sea"
-data-platform="instagram"
-target="_blank"
-rel="noopener noreferrer"
-aria-label="Перейти в Instagram"
-
->
-
-```
-<svg class="platform-icon" viewBox="0 0 24 24" fill="none">
-```
-
-```
-  <rect x="4" y="4" width="16" height="16" rx="5"
-        stroke="currentColor" stroke-width="1.6"/>
-  <circle cx="12" cy="12" r="3.6"
-          stroke="currentColor" stroke-width="1.6"/>
-  <circle cx="16.6" cy="7.4" r="0.9" fill="currentColor"/>
-</svg>
-<span>Instagram</span>
-```
-
-  </a>
 </div>
-
 
 <!-- Логика страницы -->
 <script>
@@ -615,7 +648,7 @@ aria-label="Перейти в Instagram"
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
-  /* ---------- Заголовок (Я честно скажу - нихуя не понимаю) ---------- */ 
+  /* ---------- Заголовок ---------- */
 
   const headlineEl = document.getElementById("headline");
   if (baristaId) {
@@ -626,24 +659,20 @@ aria-label="Перейти в Instagram"
   // Отправляем без поля rating, чтобы doPost() на бэкенде записал именно скан,
   // а не отзыв. Защита от дублей при перезагрузке — sessionStorage.
 
- if (baristaId) {
+  if (baristaId) {
     const scanSessionKey = "scan_logged_" + baristaId.toLowerCase();
 
     if (!sessionStorage.getItem(scanSessionKey)) {
-        sessionStorage.setItem(scanSessionKey, "1");
+      sessionStorage.setItem(scanSessionKey, "1");
 
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                barista: baristaId
-            })
-        }).catch(err => console.warn(err));
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barista: baristaId })
+      }).catch(err => console.warn(err));
     }
-}
+  }
 
   /* ---------- Звёзды ---------- */
 
@@ -750,38 +779,37 @@ aria-label="Перейти в Instagram"
         }, 350);
       });
   });
+
   // ---------- Отслеживание переходов на платформы ----------
 
-const platformButtons = document.querySelectorAll(".platform-btn");
+  const platformButtons = document.querySelectorAll(".platform-btn");
 
-platformButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const platform = button.getAttribute("data-platform");
+  platformButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const platform = button.getAttribute("data-platform");
 
-    if (!platform) return;
+      if (!platform) return;
 
-    fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-      },
-      body: new URLSearchParams({
-        type: "platform_click",
-        barista: String(baristaId || "unknown"),
-        platform: platform
-      }).toString()
-    }).catch((err) => {
-      console.warn("Не удалось записать переход:", err);
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+        },
+        body: new URLSearchParams({
+          type: "platform_click",
+          barista: String(baristaId || "unknown"),
+          platform: platform
+        }).toString()
+      }).catch((err) => {
+        console.warn("Не удалось записать переход:", err);
+      });
     });
   });
-});
-  
 </script>
 
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript">
-  
   (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
   m[i].l=1*new Date();
   for (let j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
