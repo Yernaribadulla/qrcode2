@@ -190,7 +190,7 @@
      колесо мыши, пауза при взаимодействии + возобновление через 2с
      ============================================================ */
 
-  const AUTOPLAY_SPEED_PX_PER_FRAME = 1; // медленный, размеренный дрейф
+  const AUTOPLAY_SPEED_PX_PER_FRAME = 0; // медленный, размеренный дрейф
   const RESUME_DELAY_MS = 2000;
 
   let autoplayDirection = 1;
