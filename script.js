@@ -153,7 +153,7 @@
     }
   }
 
-  // Рендер кнопок в сетку с навешиванием слушателей клика
+  
   function renderButtons(names) {
     staffGrid.innerHTML = "";
 
@@ -170,7 +170,7 @@
       `;
 
       button.addEventListener("click", (event) => {
-        // Если это был drag, а не клик — клик не засчитываем (см. carousel-логику ниже)
+        
         if (carouselJustDragged) return;
         createRipple(event, button);
         const staffId = button.getAttribute("data-id");
@@ -198,6 +198,7 @@
   let isAutoplayPaused = false;
   let isUserInteracting = false;
   let resumeTimeoutId = null;
+  let autoplayPosition = 0;
 
   let isDragging = false;
   let dragStartX = 0;
@@ -220,36 +221,47 @@
     }
   }
 
-  function startAutoplayLoop() {
-    if (!staffGrid || isAutoplayPaused || isUserInteracting || autoplayRafId) return;
+ function startAutoplayLoop() {
+  if (!staffGrid || isAutoplayPaused || isUserInteracting || autoplayRafId) {
+    return;
+  }
 
-    function step() {
-      if (!staffGrid || isAutoplayPaused || isUserInteracting) {
-        autoplayRafId = null;
-        return;
-      }
+  // Синхронизируем внутреннюю позицию с текущей позицией карусели
+  autoplayPosition = staffGrid.scrollLeft;
 
-      const maxScroll = staffGrid.scrollWidth - staffGrid.clientWidth;
-
-      if (maxScroll <= 0) {
-        // Все карточки помещаются — крутить нечего
-        autoplayRafId = null;
-        return;
-      }
-
-      staffGrid.scrollLeft += AUTOPLAY_SPEED_PX_PER_FRAME * autoplayDirection;
-
-      if (staffGrid.scrollLeft >= maxScroll - 1) {
-        autoplayDirection = -1;
-      } else if (staffGrid.scrollLeft <= 1) {
-        autoplayDirection = 1;
-      }
-
-      autoplayRafId = requestAnimationFrame(step);
+  function step() {
+    if (!staffGrid || isAutoplayPaused || isUserInteracting) {
+      autoplayRafId = null;
+      return;
     }
+
+    const maxScroll = staffGrid.scrollWidth - staffGrid.clientWidth;
+
+    if (maxScroll <= 0) {
+      autoplayRafId = null;
+      return;
+    }
+
+    // Накапливаем дробное движение отдельно от scrollLeft
+    autoplayPosition +=
+      AUTOPLAY_SPEED_PX_PER_FRAME * autoplayDirection;
+
+    if (autoplayPosition >= maxScroll) {
+      autoplayPosition = maxScroll;
+      autoplayDirection = -1;
+    } else if (autoplayPosition <= 0) {
+      autoplayPosition = 0;
+      autoplayDirection = 1;
+    }
+
+    // Передаём браузеру целое значение
+    staffGrid.scrollLeft = Math.round(autoplayPosition);
 
     autoplayRafId = requestAnimationFrame(step);
   }
+
+  autoplayRafId = requestAnimationFrame(step);
+}
 
   function stopAutoplayLoop() {
     if (autoplayRafId) {
@@ -294,6 +306,7 @@
       carouselJustDragged = false;
       dragStartX = event.clientX;
       dragStartScrollLeft = staffGrid.scrollLeft;
+      autoplayPosition = staffGrid.scrollLeft;
       staffGrid.classList.add("is-dragging");
       onInteractionStart();
     });
@@ -303,6 +316,7 @@
       const delta = event.clientX - dragStartX;
       if (Math.abs(delta) > 4) carouselJustDragged = true;
       staffGrid.scrollLeft = dragStartScrollLeft - delta;
+      autoplayPosition = staffGrid.scrollLeft;
     });
 
     window.addEventListener("mouseup", () => {
