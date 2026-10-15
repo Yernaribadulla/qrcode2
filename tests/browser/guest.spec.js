@@ -113,6 +113,61 @@ test("QR controls remain visible on a short desktop screen", async ({
   await expect(page.locator("#extend-timer")).toBeInViewport({ ratio: 1 });
 });
 
+test("countdown rolls down, drains continuously, refills and respects motion pause", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // Water is unrelated to this timer check; avoid running a second renderer.
+  await page.route("**/assets/caspian-water.webp", (route) => route.abort());
+  await page.goto("/?demo=1");
+  await page.locator(".staff-card").first().click();
+  const progress = page.locator("#timer-progress");
+  const fraction = () =>
+    progress.evaluate(
+      (n) => new DOMMatrixReadOnly(getComputedStyle(n).transform).a,
+    );
+  const samples = [];
+  for (let i = 0; i < 4; i++) {
+    samples.push(await fraction());
+    await page.waitForTimeout(70);
+  }
+  for (let i = 1; i < samples.length; i++) {
+    expect(samples[i]).toBeLessThan(samples[i - 1]);
+    expect(samples[i - 1] - samples[i]).toBeLessThan(0.025);
+  }
+  await expect(page.locator("#timer")).toHaveText("19");
+  await expect(page.locator(".timer-outgoing")).toHaveText("20");
+  expect(
+    await page
+      .locator("#timer")
+      .evaluate((n) =>
+        n.getAnimations().some((a) => a.playState === "running"),
+      ),
+  ).toBe(true);
+  await expect(page.locator(".timer-outgoing")).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+  const beforeExtend = await fraction();
+  await page.locator("#extend-timer").click();
+  await expect(page.locator("#timer")).toHaveText("20");
+  await page.waitForTimeout(300);
+  expect(await fraction()).toBeGreaterThan(beforeExtend);
+  await page.locator("#motion-toggle").click();
+  expect(await progress.evaluate((n) => n.getAnimations().length)).toBe(0);
+  expect(
+    await page.locator("#timer").evaluate((n) => n.getAnimations().length),
+  ).toBe(0);
+  await expect(page.locator("#timer")).toHaveText("19");
+  await page.locator("#motion-toggle").click();
+  const resumed = await fraction();
+  await page.waitForTimeout(100);
+  expect(await fraction()).toBeLessThan(resumed);
+  await page.locator("#back-btn").click();
+  expect(await progress.evaluate((n) => n.getAnimations().length)).toBe(0);
+  await expect(page.locator(".staff-card").first()).toBeFocused();
+});
+
 test("an unavailable QR renderer explains the failure and permits returning to baristas", async ({
   page,
 }) => {

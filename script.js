@@ -2,6 +2,7 @@ import { initAppearance } from "./src/appearance.js";
 import { config, demoNames } from "./src/config.js";
 import { loadStaff, feedbackURL } from "./src/data.js";
 import { initWater } from "./src/water.js";
+import { createCountdown } from "./src/countdown.js";
 
 initAppearance();
 initWater();
@@ -11,30 +12,20 @@ const status = document.getElementById("staff-status");
 const retry = document.getElementById("retry-staff");
 const mainScreen = document.getElementById("screen-main");
 const qrScreen = document.getElementById("screen-qr");
-const timer = document.getElementById("timer");
-const progress = document.getElementById("timer-progress");
+const countdown = createCountdown({
+  timer: document.getElementById("timer"),
+  progress: document.getElementById("timer-progress"),
+  duration: config.qrDuration,
+  onExpire: back,
+});
 let loading = false;
-let deadline = 0;
-let interval;
 let selectedButton;
 function back() {
-  clearInterval(interval);
+  countdown.stop();
   document.body.classList.remove("qr-open");
   qrScreen.hidden = true;
   mainScreen.hidden = false;
   selectedButton?.focus({ preventScroll: true });
-}
-function tick() {
-  const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-  timer.textContent = String(remaining);
-  progress.style.transform = `scaleX(${remaining / config.qrDuration})`;
-  if (!remaining) back();
-}
-function startTimer() {
-  clearInterval(interval);
-  deadline = Date.now() + config.qrDuration * 1000;
-  tick();
-  interval = setInterval(tick, 250);
 }
 function openQR(member, button) {
   selectedButton = button;
@@ -67,7 +58,7 @@ function openQR(member, button) {
   mainScreen.hidden = true;
   qrScreen.hidden = false;
   document.body.classList.add("qr-open");
-  startTimer();
+  countdown.start();
   document.getElementById("qr-heading").focus({ preventScroll: true });
 }
 function renderStaff(members) {
@@ -112,11 +103,10 @@ async function refreshStaff() {
   }
 }
 document.getElementById("back-btn").addEventListener("click", back);
-document.getElementById("extend-timer").addEventListener("click", startTimer);
+document
+  .getElementById("extend-timer")
+  .addEventListener("click", () => countdown.start(true));
 retry.addEventListener("click", refreshStaff);
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && !qrScreen.hidden) tick();
-});
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !qrScreen.hidden) back();
 });

@@ -435,9 +435,24 @@ h2 {
   transform-origin: left;
   background: var(--teal);
 }
-#timer {
+.timer-digits {
+  position: relative;
+  display: inline-block;
+  min-width: 2ch;
+  height: 1.5em;
+  overflow: hidden;
+  vertical-align: bottom;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+#timer {
+  display: block;
+}
+.timer-outgoing {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
 }
 .qr-status {
   color: var(--error);
