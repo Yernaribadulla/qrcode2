@@ -1,70 +1,218 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Штиль · Отзывы</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<div id="app">
-
-  <!-- ЭКРАН 1: ОЖИДАНИЕ -->
-  <section id="screen-main" class="screen is-active">
-    <div class="ambient"></div>
-
-    <div class="main-content">
-      <span class="eyebrow">Кофейня «Штиль» · Актау</span>
-      <h1 class="headline">Кто вас<br>обслужил?</h1>
-      <p class="subheadline">Выберите бариста, чтобы оставить отзыв о сервисе</p>
-
-      <!-- Карусель: маска для плавного затухания краёв -->
-      <div class="carousel-viewport">
-        <div class="staff-grid" id="staff-grid" data-barista-buttons>
-          <p style="color: rgba(255,255,255,0.4); text-align: center; width: 100%;">Загрузка списка бариста...</p>
-        </div>
-      </div>
+<!doctype html>
+<html lang="ru" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#edf4f3" />
+    <meta
+      name="description"
+      content="Поделитесь впечатлением о визите в кофейню «Штиль» в Актау. Выберите бариста и оставьте отзыв о сервисе."
+    />
+    <title>Штиль — на одной волне</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <script src="src/bootstrap.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Prata&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="vendor/qrcode.min.js" defer></script>
+    <script type="module" src="script.js"></script>
+  </head>
+  <body>
+    <div class="caspian-background" aria-hidden="true">
+      <svg
+        class="caspian-sea"
+        viewBox="0 0 2400 1200"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="sea-depth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" class="sea-color-top" />
+            <stop offset="1" class="sea-color-bottom" />
+          </linearGradient>
+        </defs>
+        <g class="sea-far">
+          <path
+            d="M-400 510C-30 260 220 650 650 390S1400 180 1800 420S2400 250 2800 330V1500H-400Z"
+          />
+        </g>
+        <g class="sea-mid">
+          <path
+            d="M-400 820C-80 470 380 760 740 600S1340 420 1800 650S2380 440 2800 560V1500H-400Z"
+          />
+        </g>
+        <g class="sea-near">
+          <path
+            d="M-400 1010C10 730 400 1020 850 830S1470 600 1940 850S2440 710 2800 780V1500H-400Z"
+          />
+        </g>
+        <g class="sea-foam">
+          <path
+            d="M-400 514C-30 264 220 654 650 394S1400 184 1800 424S2400 254 2800 334M-400 526C-30 276 220 666 650 406S1400 196 1800 436S2400 266 2800 346"
+          />
+        </g>
+        <g class="sea-current">
+          <path
+            d="M-1200 300q300-150 600 0t600 0t600 0t600 0t600 0t600 0t600 0t600 0"
+          />
+          <path
+            d="M-1200 318q300-150 600 0t600 0t600 0t600 0t600 0t600 0t600 0t600 0"
+          />
+        </g>
+        <g class="sea-current sea-current-back">
+          <path
+            d="M-1200 850q300-130 600 0t600 0t600 0t600 0t600 0t600 0t600 0t600 0"
+          />
+        </g>
+      </svg>
     </div>
-
-    <div class="dock">Каспийское море · борт кофейни</div>
-  </section>
-
-  <!-- ЭКРАН 2: QR-КОД -->
-  <section id="screen-qr" class="screen">
-    <div class="qr-content">
-      <span class="eyebrow">Ваш бариста</span>
-      <h2 class="qr-title" id="qr-barista-name">...</h2>
-      <p class="qr-subtitle">Наведите камеру телефона на код</p>
-
-      <div class="porthole">
-        <svg class="porthole-ring" viewBox="0 0 220 220">
-          <circle class="ring-track" cx="110" cy="110" r="100"></circle>
-          <circle class="ring-progress" id="ring-progress" cx="110" cy="110" r="100"></circle>
-        </svg>
-        <div class="porthole-glass">
-          <div id="qrcode"></div>
+    <a class="skip-link" href="#main">Перейти к содержимому</a>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="Штиль — главная"
+          ><svg viewBox="0 0 44 44" aria-hidden="true">
+            <path
+              d="M4 14c6-8 12 8 18 0s12 8 18 0M4 23c6-8 12 8 18 0s12 8 18 0M4 32c6-8 12 8 18 0s12 8 18 0"
+            /></svg
+          ><span
+            ><strong>штиль<span>.</span></strong
+            ><small>КОФЕЙНЯ · АКТАУ</small></span
+          ></a
+        >
+        <div class="appearance-controls">
+          <button
+            type="button"
+            class="icon-button"
+            id="theme-toggle"
+            aria-label="Включить тёмную тему"
+            aria-pressed="false"
+          >
+            <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M20.5 13.4A8.5 8.5 0 0 1 10.6 3.5 8.5 8.5 0 1 0 20.5 13.4Z"
+              /></svg
+            ><svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"
+              />
+            </svg></button
+          ><button
+            type="button"
+            class="icon-button motion-button"
+            id="motion-toggle"
+            aria-label="Приостановить анимацию"
+            aria-pressed="true"
+          >
+            <span aria-hidden="true">≈</span>
+          </button>
         </div>
+      </header>
+      <div id="demo-banner" class="demo-banner" role="status" hidden>
+        Демонстрация дизайна · данные не отправляются
       </div>
-
-      <div class="timer-row">
-        <span class="timer-label">Экран закроется через</span>
-        <span class="timer" id="timer">20</span>
-        <span class="timer-label">сек</span>
-      </div>
-
-      <button class="back-btn" id="back-btn">← Назад к выбору</button>
+      <main id="main" class="welcome-layout">
+        <div class="intro">
+          <p class="eyebrow">КОФЕ, МОРЕ И ВАШИ ВПЕЧАТЛЕНИЯ</p>
+          <h1>На одной<br /><em>волне.</em></h1>
+          <p class="intro-text">
+            Хороший сервис начинается с вашего мнения. Расскажите, каким был ваш
+            визит в «Штиль».
+          </p>
+          <ol class="journey-steps" aria-label="Как оставить отзыв">
+            <li><span>01</span>Выберите бариста</li>
+            <li><span>02</span>Сканируйте QR-код</li>
+            <li><span>03</span>Поделитесь впечатлением</li>
+          </ol>
+          <div class="sea-signature" aria-hidden="true">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <path
+                d="M4 14c6-8 12 8 18 0s12 8 18 0M4 23c6-8 12 8 18 0s12 8 18 0M4 32c6-8 12 8 18 0s12 8 18 0"
+              /></svg
+            ><span>Встречаем с теплом.<br />Слышим каждого.</span>
+          </div>
+        </div>
+        <div class="journey-panel">
+          <section
+            id="screen-main"
+            class="screen staff-panel"
+            aria-labelledby="staff-heading"
+          >
+            <p class="eyebrow panel-eyebrow">ВАШ ВИЗИТ</p>
+            <h2 id="staff-heading" tabindex="-1">Кто вас обслужил?</h2>
+            <p class="panel-description">
+              Выберите имя — мы покажем QR-код для отзыва.
+            </p>
+            <div id="staff-status" class="staff-status" role="status">
+              Загружаем команду…
+            </div>
+            <div id="staff-grid" class="staff-grid" aria-busy="true"></div>
+            <button
+              class="secondary-button"
+              id="retry-staff"
+              type="button"
+              hidden
+            >
+              Попробовать снова
+            </button>
+            <div class="panel-note">
+              <span class="note-dot" aria-hidden="true"></span>Пара слов от вас
+              — важная деталь для нас.
+            </div>
+          </section>
+          <section
+            id="screen-qr"
+            class="screen qr-panel"
+            aria-labelledby="qr-heading"
+            hidden
+          >
+            <div class="qr-topline">
+              <button class="text-button" id="back-btn" type="button">
+                <span aria-hidden="true">←</span> К выбору
+              </button>
+              <p>Возврат через <span id="timer">20</span> с</p>
+            </div>
+            <h2 id="qr-heading" tabindex="-1">
+              Ваш бариста — <span id="qr-barista-name"></span>
+            </h2>
+            <p class="panel-description">
+              Откройте камеру телефона и наведите её на код.
+            </p>
+            <div class="qr-frame">
+              <div
+                id="qrcode"
+                role="img"
+                aria-label="QR-код для отзыва о выбранном бариста"
+              ></div>
+            </div>
+            <div class="qr-actions">
+              <a class="feedback-link" id="feedback-link" href="feedback.html"
+                >Открыть отзыв <span aria-hidden="true">↗</span></a
+              >
+              <button id="extend-timer" type="button">Ещё 20 секунд</button>
+            </div>
+            <div class="timer-track" aria-hidden="true">
+              <div id="timer-progress"></div>
+            </div>
+            <p id="qr-status" role="status" class="qr-status"></p>
+          </section>
+        </div>
+      </main>
+      <footer class="site-footer">
+        <span>С заботой о каждом госте.</span
+        ><span>На берегу Каспия · Актау</span>
+      </footer>
+      <noscript
+        ><p class="noscript">
+          Включите JavaScript, чтобы выбрать бариста и оставить отзыв.
+        </p></noscript
+      >
     </div>
-  </section>
-
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="script.js"></script>
-</body>
+  </body>
 </html>

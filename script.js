@@ -1,345 +1,140 @@
-(function () {
-  "use strict";
+import { initAppearance } from "./src/appearance.js";
+import { config, demoNames } from "./src/config.js";
+import { loadStaff, feedbackURL } from "./src/data.js";
 
-  const SHEET_ID = "1ZS1EXykP93modWYpw0_6CXXpk3NIe7e9-VkTSdSFZVE";
-  // Лист «Баристы» — список активных сотрудников для главного экрана
-  const BARISTA_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=1292898986`;
-
-  const BASE_URL = "https://yernaribadulla.github.io/qrcode2/feedback.html?staff=";
-  const DURATION_SECONDS = 20;
-  const RING_CIRCUMFERENCE = 628.318;
-
-  const screenMain = document.getElementById("screen-main");
-  const screenQR = document.getElementById("screen-qr");
-  const qrNameEl = document.getElementById("qr-barista-name");
-  const qrCodeContainer = document.getElementById("qrcode");
-  const ringProgress = document.getElementById("ring-progress");
-  const timerEl = document.getElementById("timer");
-  const backBtn = document.getElementById("back-btn");
-  const staffGrid = document.querySelector("[data-barista-buttons]") || document.getElementById("staff-grid");
-
-  let qrInstance = null;
-  let countdownInterval = null;
-  let autoReturnTimeout = null;
-  let remainingSeconds = DURATION_SECONDS;
-
-  // 1. Анимация волны (Ripple)
-  function createRipple(event, button) {
-    const rect = button.getBoundingClientRect();
-    const ripple = document.createElement("span");
-    const size = Math.max(rect.width, rect.height) * 1.4;
-    const x = (event.clientX ?? rect.left + rect.width / 2) - rect.left - size / 2;
-    const y = (event.clientY ?? rect.top + rect.height / 2) - rect.top - size / 2;
-
-    ripple.className = "ripple";
-    ripple.style.width = ripple.style.height = size + "px";
-    ripple.style.left = x + "px";
-    ripple.style.top = y + "px";
-
-    button.appendChild(ripple);
-    ripple.addEventListener("animationend", () => ripple.remove());
-  }
-
-  // 2. Генерация QR-кода
-  function renderQRCode(staffId) {
-    qrCodeContainer.innerHTML = "";
-    qrInstance = new QRCode(qrCodeContainer, {
-      text: BASE_URL + encodeURIComponent(staffId),
-      width: 176,
-      height: 176,
-      colorDark: "#0a141b",
-      colorLight: "#f4f1ea",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  }
-
-  // 3. Анимация кольца таймера
-  function resetRing() {
-    ringProgress.style.transition = "none";
-    ringProgress.style.strokeDashoffset = "0";
-    ringProgress.getBoundingClientRect();
-  }
-
-  function startRingDrain(seconds) {
-    resetRing();
-    requestAnimationFrame(() => {
-      ringProgress.style.transition = `stroke-dashoffset ${seconds}s linear`;
-      ringProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
-    });
-  }
-
-  // 4. Логика таймера
-  function startCountdown() {
-    remainingSeconds = DURATION_SECONDS;
-    timerEl.textContent = String(remainingSeconds);
-
-    clearInterval(countdownInterval);
-    clearTimeout(autoReturnTimeout);
-
-    countdownInterval = setInterval(() => {
-      remainingSeconds -= 1;
-      timerEl.textContent = String(Math.max(remainingSeconds, 0));
-      if (remainingSeconds <= 0) {
-        clearInterval(countdownInterval);
-      }
-    }, 1000);
-
-    autoReturnTimeout = setTimeout(() => {
-      goToMainScreen();
-    }, DURATION_SECONDS * 1000);
-  }
-
-  // 5. Переключение экранов
-  function goToQRScreen(staffId, staffName) {
-    qrNameEl.textContent = staffName;
-    renderQRCode(staffId);
-    startRingDrain(DURATION_SECONDS);
-    startCountdown();
-
-    pauseCarousel(true); // на экране QR карусель не нужна — просто держим её на паузе
-    screenMain.classList.remove("is-active");
-    screenQR.classList.add("is-active");
-  }
-
-  function goToMainScreen() {
-    clearInterval(countdownInterval);
-    clearTimeout(autoReturnTimeout);
-
-    screenQR.classList.remove("is-active");
-    screenMain.classList.add("is-active");
-    pauseCarousel(false);
-    scheduleAutoplayResume();
-  }
-
-  // 6. Динамическая загрузка списка бариста из Google Sheets
-  async function loadAndRenderBaristas() {
-    if (!staffGrid) return;
-
-    try {
-      const response = await fetch(BARISTA_SHEET_URL);
-      const textData = await response.text();
-      const match = textData.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
-
-      let namesList = [];
-
-      if (match && match[1]) {
-        const parsed = JSON.parse(match[1]);
-        const rows = parsed.table.rows || [];
-        const uniqueNames = new Set();
-
-        rows.forEach(row => {
-          // Ищем имена в строках
-          const cellVal = row.c && row.c[1] ? row.c[1].v : (row.c && row.c[0] ? row.c[0].v : null);
-          if (cellVal && typeof cellVal === 'string') {
-            const clean = cellVal.trim();
-            if (clean && !['бариста', 'дата', 'barista', 'date'].includes(clean.toLowerCase())) {
-              uniqueNames.add(clean);
-            }
-          }
-        });
-        namesList = Array.from(uniqueNames);
-      }
-
-      // Если в таблице еще мало данных, ставим фоллбэк
-      if (namesList.length === 0) {
-        namesList = ["Ислам", "Диас", "Баха"];
-      }
-
-      renderButtons(namesList);
-
-    } catch (err) {
-      console.error("Ошибка при загрузке бариста, включаем дефолтный список:", err);
-      renderButtons(["Ислам", "Диас", "Баха"]);
-    }
-  }
-
-  
-  function renderButtons(names) {
-    staffGrid.innerHTML = "";
-
-    names.forEach(name => {
-      const button = document.createElement("button");
-      button.className = "staff-card";
-      button.setAttribute("data-id", name.toLowerCase());
-      button.setAttribute("data-name", name);
-
-      const initial = name.charAt(0).toUpperCase();
-      button.innerHTML = `
-        <span class="staff-initial">${initial}</span>
-        <span class="staff-name">${name}</span>
-      `;
-
-      button.addEventListener("click", (event) => {
-        
-        if (carouselJustDragged) return;
-        createRipple(event, button);
-        const staffId = button.getAttribute("data-id");
-        const staffName = button.getAttribute("data-name");
-        setTimeout(() => goToQRScreen(staffId, staffName), 120);
-      });
-
-      staffGrid.appendChild(button);
-    });
-    
-
-    initCarouselDimensions();
-  }
-
-  /* ============================================================
-     КАРУСЕЛЬ: авто-скролл (пинг-понг), драг мышью, тач-свайп,
-     колесо мыши, пауза при взаимодействии + возобновление через 2с
-     ============================================================ */
-
-  const AUTOPLAY_SPEED_PX_PER_FRAME = 0; // медленный, размеренный дрейф
-  const RESUME_DELAY_MS = 2000;
-
-  let autoplayDirection = 1;
-  let autoplayRafId = null;
-  let isAutoplayPaused = false;
-  let isUserInteracting = false;
-  let resumeTimeoutId = null;
-  let autoplayPosition = 0;
-
-  let isDragging = false;
-  let dragStartX = 0;
-  let dragStartScrollLeft = 0;
-  let carouselJustDragged = false;
-
-  function initCarouselDimensions() {
-    if (!staffGrid) return;
-    // Стартуем автопрокрутку заново после перерендера кнопок
-    stopAutoplayLoop();
-    startAutoplayLoop();
-  }
-
-  function pauseCarousel(pause) {
-    isAutoplayPaused = pause;
-    if (pause) {
-      stopAutoplayLoop();
-    } else if (!isUserInteracting) {
-      startAutoplayLoop();
-    }
-  }
-
- function startAutoplayLoop() {
-  if (!staffGrid || isAutoplayPaused || isUserInteracting || autoplayRafId) {
-    return;
-  }
-
-  // Синхронизируем внутреннюю позицию с текущей позицией карусели
-  autoplayPosition = staffGrid.scrollLeft;
-
-  function step() {
-    if (!staffGrid || isAutoplayPaused || isUserInteracting) {
-      autoplayRafId = null;
-      return;
-    }
-
-    const maxScroll = staffGrid.scrollWidth - staffGrid.clientWidth;
-
-    if (maxScroll <= 0) {
-      autoplayRafId = null;
-      return;
-    }
-
-    // Накапливаем дробное движение отдельно от scrollLeft
-    autoplayPosition +=
-      AUTOPLAY_SPEED_PX_PER_FRAME * autoplayDirection;
-
-    if (autoplayPosition >= maxScroll) {
-      autoplayPosition = maxScroll;
-      autoplayDirection = -1;
-    } else if (autoplayPosition <= 0) {
-      autoplayPosition = 0;
-      autoplayDirection = 1;
-    }
-
-    // Передаём браузеру целое значение
-    staffGrid.scrollLeft = Math.round(autoplayPosition);
-
-    autoplayRafId = requestAnimationFrame(step);
-  }
-
-  autoplayRafId = requestAnimationFrame(step);
+initAppearance();
+const demo = new URLSearchParams(location.search).get("demo") === "1";
+const grid = document.getElementById("staff-grid");
+const status = document.getElementById("staff-status");
+const retry = document.getElementById("retry-staff");
+const mainScreen = document.getElementById("screen-main");
+const qrScreen = document.getElementById("screen-qr");
+const timer = document.getElementById("timer");
+const progress = document.getElementById("timer-progress");
+let loading = false;
+let deadline = 0;
+let interval;
+let selectedButton;
+function back() {
+  clearInterval(interval);
+  document.body.classList.remove("qr-open");
+  qrScreen.hidden = true;
+  mainScreen.hidden = false;
+  selectedButton?.focus({ preventScroll: true });
 }
-
-  function stopAutoplayLoop() {
-    if (autoplayRafId) {
-      cancelAnimationFrame(autoplayRafId);
-      autoplayRafId = null;
-    }
-  }
-
-  function scheduleAutoplayResume() {
-    clearTimeout(resumeTimeoutId);
-    resumeTimeoutId = setTimeout(() => {
-      isUserInteracting = false;
-      startAutoplayLoop();
-    }, RESUME_DELAY_MS);
-  }
-
-  function onInteractionStart() {
-    isUserInteracting = true;
-    stopAutoplayLoop();
-    clearTimeout(resumeTimeoutId);
-  }
-
-  function onInteractionEnd() {
-    scheduleAutoplayResume();
-  }
-
-  if (staffGrid) {
-    // Колесо мыши / трекпад — как ручной свайп: сразу ставим на паузу
-    staffGrid.addEventListener("wheel", () => {
-      onInteractionStart();
-      onInteractionEnd();
-    }, { passive: true });
-
-    // Тач-свайп (нативный скролл на телефонах/планшетах)
-    staffGrid.addEventListener("touchstart", onInteractionStart, { passive: true });
-    staffGrid.addEventListener("touchend", onInteractionEnd, { passive: true });
-    staffGrid.addEventListener("touchcancel", onInteractionEnd, { passive: true });
-
-    // Драг мышью (десктоп)
-    staffGrid.addEventListener("mousedown", (event) => {
-      isDragging = true;
-      carouselJustDragged = false;
-      dragStartX = event.clientX;
-      dragStartScrollLeft = staffGrid.scrollLeft;
-      autoplayPosition = staffGrid.scrollLeft;
-      staffGrid.classList.add("is-dragging");
-      onInteractionStart();
+function tick() {
+  const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+  timer.textContent = String(remaining);
+  progress.style.transform = `scaleX(${remaining / config.qrDuration})`;
+  if (!remaining) back();
+}
+function startTimer() {
+  clearInterval(interval);
+  deadline = Date.now() + config.qrDuration * 1000;
+  tick();
+  interval = setInterval(tick, 250);
+}
+function openQR(member, button) {
+  selectedButton = button;
+  const url = feedbackURL(member.id, location.href, demo);
+  const target = document.getElementById("qrcode");
+  const qrStatus = document.getElementById("qr-status");
+  const qrFrame = document.querySelector(".qr-frame");
+  qrFrame.hidden = false;
+  target.replaceChildren();
+  qrStatus.textContent = "";
+  try {
+    if (!window.QRCode) throw new Error("QR library unavailable");
+    new window.QRCode(target, {
+      text: url,
+      width: 256,
+      height: 256,
+      colorDark: "#092d34",
+      colorLight: "#ffffff",
+      correctLevel: window.QRCode.CorrectLevel.M,
     });
-
-    window.addEventListener("mousemove", (event) => {
-      if (!isDragging) return;
-      const delta = event.clientX - dragStartX;
-      if (Math.abs(delta) > 4) carouselJustDragged = true;
-      staffGrid.scrollLeft = dragStartScrollLeft - delta;
-      autoplayPosition = staffGrid.scrollLeft;
+    target.querySelectorAll("img").forEach((image) => {
+      image.alt = "";
     });
-
-    window.addEventListener("mouseup", () => {
-      if (!isDragging) return;
-      isDragging = false;
-      staffGrid.classList.remove("is-dragging");
-      onInteractionEnd();
-      // Сбрасываем флаг "это был драг" чуть позже, чтобы клик по кнопке
-      // сразу после отпускания мыши не сработал случайно
-      setTimeout(() => { carouselJustDragged = false; }, 50);
-    });
-
-    staffGrid.addEventListener("mouseleave", () => {
-      if (isDragging) {
-        isDragging = false;
-        staffGrid.classList.remove("is-dragging");
-        onInteractionEnd();
-      }
-    });
+  } catch {
+    qrFrame.hidden = true;
+    qrStatus.textContent =
+      "Не удалось показать QR-код. Откройте отзыв по ссылке ниже.";
   }
-
-  // Инициализация
-  backBtn.addEventListener("click", goToMainScreen);
-  loadAndRenderBaristas();
-
-})();
+  document.getElementById("qr-barista-name").textContent = member.name;
+  document.getElementById("feedback-link").href = url;
+  mainScreen.hidden = true;
+  qrScreen.hidden = false;
+  document.body.classList.add("qr-open");
+  startTimer();
+  document.getElementById("qr-heading").focus({ preventScroll: true });
+}
+function renderStaff(members) {
+  grid.replaceChildren(
+    ...members.map((member, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "staff-card";
+      button.dataset.id = member.id;
+      button.style.setProperty("--card-index", String(Math.min(index, 8)));
+      button.setAttribute(
+        "aria-label",
+        `Оставить отзыв о бариста ${member.name}`,
+      );
+      const initial = document.createElement("span");
+      initial.className = "staff-initial";
+      initial.textContent = member.name.charAt(0).toUpperCase();
+      initial.setAttribute("aria-hidden", "true");
+      const detail = document.createElement("span");
+      detail.className = "staff-detail";
+      const name = document.createElement("span");
+      name.className = "staff-name";
+      name.textContent = member.name;
+      const role = document.createElement("span");
+      role.className = "staff-role";
+      role.textContent = "Бариста";
+      const arrow = document.createElement("span");
+      arrow.className = "staff-arrow";
+      arrow.textContent = "↗";
+      arrow.setAttribute("aria-hidden", "true");
+      detail.append(name, role);
+      button.append(initial, detail, arrow);
+      button.addEventListener("click", () => openQR(member, button));
+      return button;
+    }),
+  );
+}
+async function refreshStaff() {
+  if (loading) return;
+  loading = true;
+  retry.hidden = true;
+  grid.setAttribute("aria-busy", "true");
+  status.textContent = "Загружаем команду…";
+  try {
+    const members = demo
+      ? demoNames.map((name) => ({ id: name.toLowerCase(), name }))
+      : await loadStaff();
+    renderStaff(members);
+    status.textContent = members.length
+      ? ""
+      : "Список бариста пока пуст. Пожалуйста, обратитесь к команде кофейни.";
+    retry.hidden = members.length > 0;
+  } catch {
+    status.textContent =
+      "Не удалось загрузить команду. Проверьте связь и попробуйте ещё раз.";
+    retry.hidden = false;
+  } finally {
+    loading = false;
+    grid.setAttribute("aria-busy", "false");
+  }
+}
+document.getElementById("back-btn").addEventListener("click", back);
+document.getElementById("extend-timer").addEventListener("click", startTimer);
+retry.addEventListener("click", refreshStaff);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && !qrScreen.hidden) tick();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !qrScreen.hidden) back();
+});
+await refreshStaff();
