@@ -13,6 +13,26 @@ async function form(page, query = "staff=mukha") {
   await page.goto(`/feedback.html?${query}`);
   await expect(page.locator("#submit-btn")).toBeEnabled();
 }
+async function decodeQR(page) {
+  const image = await page.locator("#qrcode canvas").evaluate((canvas) => ({
+    width: canvas.width,
+    height: canvas.height,
+    pixels: Array.from(
+      canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height)
+        .data,
+    ),
+  }));
+  const qr = jsQR(
+    new Uint8ClampedArray(image.pixels),
+    image.width,
+    image.height,
+  );
+  return qr.data;
+}
+async function scanQR(page) {
+  await page.goto(await decodeQR(page));
+  await expect(page.locator("#submit-btn")).toBeEnabled();
+}
 async function audit(page) {
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -43,26 +63,14 @@ test("staff selection produces a decodable QR with the unchanged feedback route"
 }) => {
   await page.goto("/");
   await expect(page.locator(".staff-card")).toHaveCount(4);
-  const button = page.getByRole("link", {
-    name: "Оставить отзыв о бариста Mukha",
+  const button = page.getByRole("button", {
+    name: "Mukha",
     exact: true,
   });
   await button.click();
   await expect(page.locator("#screen-main")).toBeHidden();
   await expect(page.locator("#qr-heading")).toBeFocused();
-  const image = await page.locator("#qrcode canvas").evaluate((canvas) => ({
-    width: canvas.width,
-    height: canvas.height,
-    pixels: Array.from(
-      canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height)
-        .data,
-    ),
-  }));
-  const qr = jsQR(
-    new Uint8ClampedArray(image.pixels),
-    image.width,
-    image.height,
-  );
+  const qr = { data: await decodeQR(page) };
   expect(qr.data).toBe("http://127.0.0.1:4174/feedback.html?staff=mukha");
   expect(
     await page
@@ -105,16 +113,19 @@ test("QR controls remain visible on a short desktop screen", async ({
   await expect(page.locator("#extend-timer")).toBeInViewport({ ratio: 1 });
 });
 
-test("an unavailable QR renderer still offers the direct feedback link", async ({
+test("an unavailable QR renderer explains the failure and permits returning to baristas", async ({
   page,
 }) => {
   await page.route("**/vendor/qrcode.min.js", (route) => route.abort());
   await page.goto("/?demo=1");
   await page.locator(".staff-card").first().click();
   await expect(page.locator(".qr-frame")).toBeHidden();
-  await expect(page.locator("#qr-status")).toContainText("QR недоступен");
-  await page.locator("#feedback-link").click();
-  await expect(page.locator("#submit-btn")).toBeEnabled();
+  await expect(page.locator("#qr-status")).toContainText(
+    "QR временно недоступен",
+  );
+  await expect(page.locator("#screen-qr a")).toHaveCount(0);
+  await page.locator("#back-btn").click();
+  await expect(page.locator(".staff-card").first()).toBeFocused();
 });
 
 test.describe("touch feedback", () => {
@@ -129,14 +140,14 @@ test.describe("touch feedback", () => {
     await page.locator("#submit-btn").tap();
     await expect(page.locator("#thanks-screen")).toBeVisible();
   });
-  test("a landscape phone still opens its own form instead of a QR", async ({
+  test("a landscape touch display keeps the monitor QR flow", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 844, height: 390 });
     await page.goto("/?demo=1");
     await page.locator(".staff-card").first().tap();
-    await expect(page).toHaveURL(/feedback\.html\?staff=.*demo=1/);
-    await expect(page.locator("#submit-btn")).toBeEnabled();
+    await expect(page.locator("#screen-qr")).toBeVisible();
+    expect(await decodeQR(page)).toMatch(/feedback\.html\?staff=.*demo=1/);
   });
 });
 
@@ -323,11 +334,8 @@ test("demo carries into the QR and form without Sheets, writes or metrics", asyn
   });
   await page.goto("/?demo=1");
   await page.locator(".staff-card").first().click();
-  await expect(page.locator("#feedback-link")).toHaveAttribute(
-    "href",
-    /demo=1/,
-  );
-  await page.locator("#feedback-link").click();
+  expect(await decodeQR(page)).toMatch(/demo=1/);
+  await scanQR(page);
   await page.getByRole("radio", { name: "5 звёзд", exact: true }).check();
   await page.locator("#submit-btn").click();
   await expect(page.locator("#thanks-screen")).toBeVisible();
@@ -344,7 +352,7 @@ test("appearance follows Штиль preferences across both pages without losing
   await page.goto("/?demo=1");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.locator(".staff-card").first().click();
-  await page.locator("#feedback-link").click();
+  await scanQR(page);
   await page.getByRole("radio", { name: "4 звезды", exact: true }).check();
   await page.locator("#comment").fill("Всё понравилось");
   await page.locator("#theme-toggle").click();
@@ -373,42 +381,97 @@ test("blocked storage does not prevent a guest from submitting", async ({
   await expect(page.locator("#thanks-screen")).toBeVisible();
 });
 
-test("sea motion pauses and reduced motion disables all entry effects", async ({
+test("reduced motion disables entry effects and water rendering", async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/?demo=1");
-  expect(
-    await page
-      .locator(".caspian-water")
-      .first()
-      .evaluate((n) => getComputedStyle(n).animationName),
-  ).toBe("water-drift");
-  await page.locator("#motion-toggle").click();
-  expect(
-    await page
-      .locator(".caspian-water")
-      .first()
-      .evaluate((n) => getComputedStyle(n).animationName),
-  ).toBe("none");
-  await page.reload();
-  await expect(page.locator("#motion-toggle")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-  await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator("#motion-toggle")).toBeDisabled();
+  await expect(page.locator("#caspian-canvas")).toHaveAttribute(
+    "data-renderer",
+    "fallback",
+  );
   await page.locator("#theme-toggle").click();
   expect(
     await page
       .locator(".sea-shade")
-      .evaluate((node) => getComputedStyle(node).transitionDuration),
+      .evaluate((n) => getComputedStyle(n).transitionDuration),
   ).toBe("0s");
   expect(
     await page
       .locator(".page-shell")
       .evaluate((n) => getComputedStyle(n).opacity),
   ).toBe("1");
+});
+
+test("water changes locally, freezes when paused and resumes without navigation", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/?demo=1");
+  const water = page.locator("#caspian-canvas");
+  await expect(water).toHaveAttribute("data-renderer", "webgl");
+  await expect(water).toHaveCSS("opacity", "1");
+  const first = await water.screenshot({ animations: "allow" });
+  await page.waitForTimeout(1200);
+  const second = await water.screenshot({ animations: "allow" });
+  expect(first.equals(second)).toBe(false);
+  await page.locator("#motion-toggle").click();
+  await expect(page.locator("html")).toHaveClass(/motion-paused/);
+  const frozen = await water.screenshot({ animations: "allow" });
+  await page.waitForTimeout(500);
+  expect(frozen.equals(await water.screenshot({ animations: "allow" }))).toBe(
+    true,
+  );
+  await page.reload();
+  await expect(page.locator("#motion-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(water).toHaveAttribute("data-renderer", "fallback");
+  await page.locator("#motion-toggle").click();
+  await expect(water).toHaveAttribute("data-renderer", "webgl");
+  expect(await water.evaluate((n) => n.width * n.height)).toBeLessThanOrEqual(
+    1_001_000,
+  );
+});
+
+test("loss and restoration of the GPU context preserve staff and QR", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  const water = page.locator("#caspian-canvas");
+  await expect(water).toHaveAttribute("data-renderer", "webgl");
+  await water.evaluate((n) => {
+    window.waterRecovery = n
+      .getContext("webgl")
+      .getExtension("WEBGL_lose_context");
+    window.waterRecovery.loseContext();
+  });
+  await expect(water).toHaveAttribute("data-renderer", "fallback");
+  await page.getByRole("button", { name: "Mukha", exact: true }).click();
+  expect(await decodeQR(page)).toMatch(/staff=mukha$/);
+  await water.evaluate(() => window.waterRecovery.restoreContext());
+  await expect(water).toHaveAttribute("data-renderer", "webgl");
+});
+
+test("a monitor without WebGL keeps the photographic fallback and usable QR", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      return type === "webgl" ? null : original.call(this, type, ...args);
+    };
+  });
+  await page.goto("/");
+  await expect(page.locator("#caspian-canvas")).toHaveAttribute(
+    "data-renderer",
+    "fallback",
+  );
+  await page.locator(".staff-card").first().click();
+  expect(await decodeQR(page)).toMatch(/staff=mukha$/);
 });
 
 for (const width of [320, 390, 768, 1440]) {
@@ -427,7 +490,7 @@ for (const width of [320, 390, 768, 1440]) {
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await page.locator("#feedback-link").click();
+    await scanQR(page);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -447,8 +510,10 @@ for (const width of [320, 390, 768, 1440]) {
 for (const [width, height] of [
   [320, 640],
   [390, 844],
+  [1280, 720],
+  [1920, 1080],
 ]) {
-  test(`phone ${width}x${height} shows the primary actions and opens the form in one tap`, async ({
+  test(`monitor ${width}x${height} shows baristas without review calls to action`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height });
@@ -456,13 +521,15 @@ for (const [width, height] of [
     await expect(page.locator(".staff-card")).toHaveCount(4);
     for (const item of await page.locator(".staff-card").all())
       await expect(item).toBeInViewport({ ratio: 1 });
-    await page.locator(".staff-card").first().click();
-    await expect(page).toHaveURL(/feedback\.html\?staff=mukha$/);
-    await expect(page.locator("#submit-btn")).toBeEnabled();
-    await expect(page.locator("#submit-btn")).toBeInViewport({ ratio: 1 });
     await expect(
-      page.getByRole("radio", { name: "5 звёзд", exact: true }),
-    ).toBeInViewport({ ratio: 1 });
+      page.getByText(
+        /оставить отзыв|открыть отзыв|Кто вас обслужил|Выберите имя|Показать QR-коды/i,
+      ),
+    ).toHaveCount(0);
+    await expect(page.locator("#screen-main a")).toHaveCount(0);
+    await page.getByRole("button", { name: "Mukha", exact: true }).click();
+    await expect(page.locator("#screen-qr")).toBeVisible();
+    expect(await decodeQR(page)).toMatch(/feedback\.html\?staff=mukha$/);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -471,30 +538,28 @@ for (const [width, height] of [
   });
 }
 
-test("a phone can explicitly enter QR mode, keeping demo isolated", async ({
+test("legacy entry parameters cannot turn the monitor into a guest form", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/?demo=1");
-  await page
-    .getByRole("link", { name: "Показать QR-коды", exact: true })
-    .click();
-  await expect(page).toHaveURL(/demo=1&kiosk=1/);
+  await page.goto("/?demo=1&direct=1&kiosk=1");
   await page.locator(".staff-card").first().click();
   await expect(page.locator("#screen-qr")).toBeVisible();
-  await expect(page.locator("#feedback-link")).toHaveAttribute(
-    "href",
-    /demo=1/,
-  );
+  expect(await decodeQR(page)).toMatch(/demo=1/);
 });
 
-test("desktop can opt into the direct form and image failure never blocks submission", async ({
+test("image failure never blocks barista selection or the guest form", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.route("**/assets/caspian-water.webp", (route) => route.abort());
-  await page.goto("/?demo=1&direct=1");
+  await page.goto("/?demo=1");
   await page.locator(".staff-card").first().click();
-  await expect(page).toHaveURL(/feedback\.html\?staff=.*demo=1/);
+  await expect(page.locator("#caspian-canvas")).toHaveAttribute(
+    "data-renderer",
+    "fallback",
+  );
+  await scanQR(page);
   await page.getByRole("radio", { name: "5 звёзд", exact: true }).check();
   await page.locator("#submit-btn").click();
   await expect(page.locator("#thanks-screen")).toBeVisible();
@@ -511,7 +576,7 @@ for (const theme of ["light", "dark"]) {
     await audit(page);
     await page.locator(".staff-card").first().click();
     await audit(page);
-    await page.locator("#feedback-link").click();
+    await scanQR(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await audit(page);
     await page.getByRole("radio", { name: "5 звёзд", exact: true }).check();

@@ -1,9 +1,10 @@
 import { initAppearance } from "./src/appearance.js";
 import { config, demoNames } from "./src/config.js";
 import { loadStaff, feedbackURL } from "./src/data.js";
-import { entryMode } from "./src/flow.js";
+import { initWater } from "./src/water.js";
 
 initAppearance();
+initWater();
 const demo = new URLSearchParams(location.search).get("demo") === "1";
 const grid = document.getElementById("staff-grid");
 const status = document.getElementById("staff-status");
@@ -12,20 +13,6 @@ const mainScreen = document.getElementById("screen-main");
 const qrScreen = document.getElementById("screen-qr");
 const timer = document.getElementById("timer");
 const progress = document.getElementById("timer-progress");
-const wideScreen = matchMedia("(min-width: 768px) and (pointer: fine)");
-const modeLink = document.getElementById("entry-mode-link");
-const mode = () => entryMode(location.search, wideScreen.matches);
-function updateModeLink() {
-  const next = new URL(location.href);
-  next.searchParams.delete("direct");
-  next.searchParams.delete("kiosk");
-  next.searchParams.set(mode() === "qr" ? "direct" : "kiosk", "1");
-  modeLink.href = next.href;
-  modeLink.textContent =
-    mode() === "qr" ? "Открывать отзывы без QR" : "Показать QR-коды";
-}
-wideScreen.addEventListener("change", updateModeLink);
-updateModeLink();
 let loading = false;
 let deadline = 0;
 let interval;
@@ -73,10 +60,10 @@ function openQR(member, button) {
     });
   } catch {
     qrFrame.hidden = true;
-    qrStatus.textContent = "QR недоступен. Откройте отзыв по ссылке.";
+    qrStatus.textContent =
+      "QR временно недоступен. Вернитесь к выбору и попробуйте снова.";
   }
   document.getElementById("qr-barista-name").textContent = member.name;
-  document.getElementById("feedback-link").href = url;
   mainScreen.hidden = true;
   qrScreen.hidden = false;
   document.body.classList.add("qr-open");
@@ -86,43 +73,16 @@ function openQR(member, button) {
 function renderStaff(members) {
   grid.replaceChildren(
     ...members.map((member, index) => {
-      const button = document.createElement("a");
-      button.href = feedbackURL(member.id, location.href, demo);
+      const button = document.createElement("button");
+      button.type = "button";
       button.className = "staff-card";
       button.dataset.id = member.id;
       button.style.setProperty("--card-index", String(Math.min(index, 8)));
-      button.setAttribute(
-        "aria-label",
-        `Оставить отзыв о бариста ${member.name}`,
-      );
-      const initial = document.createElement("span");
-      initial.className = "staff-initial";
-      initial.textContent = member.name.charAt(0).toUpperCase();
-      initial.setAttribute("aria-hidden", "true");
-      const detail = document.createElement("span");
-      detail.className = "staff-detail";
       const name = document.createElement("span");
       name.className = "staff-name";
       name.textContent = member.name;
-      const arrow = document.createElement("span");
-      arrow.className = "staff-arrow";
-      arrow.textContent = "→";
-      arrow.setAttribute("aria-hidden", "true");
-      detail.append(name);
-      button.append(initial, detail, arrow);
-      button.addEventListener("click", (event) => {
-        if (
-          mode() === "qr" &&
-          event.button === 0 &&
-          !event.metaKey &&
-          !event.ctrlKey &&
-          !event.shiftKey &&
-          !event.altKey
-        ) {
-          event.preventDefault();
-          openQR(member, button);
-        }
-      });
+      button.append(name);
+      button.addEventListener("click", () => openQR(member, button));
       return button;
     }),
   );

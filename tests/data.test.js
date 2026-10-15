@@ -10,16 +10,6 @@ import {
   loadStaff,
 } from "../src/data.js";
 import { config } from "../src/config.js";
-import { entryMode } from "../src/flow.js";
-
-test("mobile opens directly, kiosk overrides width and direct mode overrides the kiosk", () => {
-  assert.equal(entryMode("", false), "direct");
-  assert.equal(entryMode("", true), "qr");
-  assert.equal(entryMode("?kiosk=1", false), "qr");
-  assert.equal(entryMode("?direct=1", true), "direct");
-  assert.equal(entryMode("?direct=1&kiosk=1", false), "direct");
-});
-
 const wrap = (rows) =>
   `/*O_o*/\ngoogle.visualization.Query.setResponse(${JSON.stringify({ status: "ok", table: { rows: rows.map((values) => ({ c: values.map((v) => ({ v })) })) } })});`;
 test("staff source keeps identifiers, trims names, skips headers and deduplicates case", () => {
