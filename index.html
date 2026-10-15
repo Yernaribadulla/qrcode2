@@ -11,7 +11,7 @@
       name="description"
       content="Поделитесь впечатлением о визите в кофейню «Штиль» в Актау. Выберите бариста и оставьте отзыв о сервисе."
     />
-    <title>Штиль — на одной волне</title>
+    <title>Штиль — отзыв о визите</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <script src="src/bootstrap.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,57 +20,15 @@
       href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Prata&display=swap"
       rel="stylesheet"
     />
+    <link rel="preload" as="image" href="assets/caspian-water.webp" />
     <link rel="stylesheet" href="style.css" />
     <script src="vendor/qrcode.min.js" defer></script>
     <script type="module" src="script.js"></script>
   </head>
   <body>
     <div class="caspian-background" aria-hidden="true">
-      <svg
-        class="caspian-sea"
-        viewBox="0 0 2400 1200"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id="sea-depth" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" class="sea-color-top" />
-            <stop offset="1" class="sea-color-bottom" />
-          </linearGradient>
-        </defs>
-        <g class="sea-far">
-          <path
-            d="M-400 510C-30 260 220 650 650 390S1400 180 1800 420S2400 250 2800 330V1500H-400Z"
-          />
-        </g>
-        <g class="sea-mid">
-          <path
-            d="M-400 820C-80 470 380 760 740 600S1340 420 1800 650S2380 440 2800 560V1500H-400Z"
-          />
-        </g>
-        <g class="sea-near">
-          <path
-            d="M-400 1010C10 730 400 1020 850 830S1470 600 1940 850S2440 710 2800 780V1500H-400Z"
-          />
-        </g>
-        <g class="sea-foam">
-          <path
-            d="M-400 514C-30 264 220 654 650 394S1400 184 1800 424S2400 254 2800 334M-400 526C-30 276 220 666 650 406S1400 196 1800 436S2400 266 2800 346"
-          />
-        </g>
-        <g class="sea-current">
-          <path
-            d="M-1200 300q300-150 600 0t600 0t600 0t600 0t600 0t600 0t600 0t600 0"
-          />
-          <path
-            d="M-1200 318q300-150 600 0t600 0t600 0t600 0t600 0t600 0t600 0t600 0"
-          />
-        </g>
-        <g class="sea-current sea-current-back">
-          <path
-            d="M-1200 850q300-130 600 0t600 0t600 0t600 0t600 0t600 0t600 0t600 0"
-          />
-        </g>
-      </svg>
+      <div class="caspian-water"></div>
+      <div class="sea-shade"></div>
     </div>
     <a class="skip-link" href="#main">Перейти к содержимому</a>
     <div class="page-shell">
@@ -115,102 +73,71 @@
         </div>
       </header>
       <div id="demo-banner" class="demo-banner" role="status" hidden>
-        Демонстрация дизайна · данные не отправляются
+        Демо · без отправки данных
       </div>
-      <main id="main" class="welcome-layout">
-        <div class="intro">
-          <p class="eyebrow">КОФЕ, МОРЕ И ВАШИ ВПЕЧАТЛЕНИЯ</p>
-          <h1>На одной<br /><em>волне.</em></h1>
-          <p class="intro-text">
-            Хороший сервис начинается с вашего мнения. Расскажите, каким был ваш
-            визит в «Штиль».
-          </p>
-          <ol class="journey-steps" aria-label="Как оставить отзыв">
-            <li><span>01</span>Выберите бариста</li>
-            <li><span>02</span>Сканируйте QR-код</li>
-            <li><span>03</span>Поделитесь впечатлением</li>
-          </ol>
-          <div class="sea-signature" aria-hidden="true">
-            <svg viewBox="0 0 44 44" aria-hidden="true">
-              <path
-                d="M4 14c6-8 12 8 18 0s12 8 18 0M4 23c6-8 12 8 18 0s12 8 18 0M4 32c6-8 12 8 18 0s12 8 18 0"
-              /></svg
-            ><span>Встречаем с теплом.<br />Слышим каждого.</span>
+      <main id="main" class="guest-layout">
+        <h1 class="visually-hidden">Штиль — отзыв о визите</h1>
+        <section
+          id="screen-main"
+          class="screen staff-panel"
+          aria-labelledby="staff-heading"
+        >
+          <h2 id="staff-heading" tabindex="-1">Кто вас обслужил?</h2>
+          <p class="selection-hint">Выберите имя</p>
+          <div id="staff-status" class="staff-status" role="status">
+            Загружаем команду…
           </div>
-        </div>
-        <div class="journey-panel">
-          <section
-            id="screen-main"
-            class="screen staff-panel"
-            aria-labelledby="staff-heading"
-          >
-            <p class="eyebrow panel-eyebrow">ВАШ ВИЗИТ</p>
-            <h2 id="staff-heading" tabindex="-1">Кто вас обслужил?</h2>
-            <p class="panel-description">
-              Выберите имя — мы покажем QR-код для отзыва.
-            </p>
-            <div id="staff-status" class="staff-status" role="status">
-              Загружаем команду…
-            </div>
-            <div id="staff-grid" class="staff-grid" aria-busy="true"></div>
-            <button
-              class="secondary-button"
-              id="retry-staff"
-              type="button"
-              hidden
-            >
-              Попробовать снова
-            </button>
-            <div class="panel-note">
-              <span class="note-dot" aria-hidden="true"></span>Пара слов от вас
-              — важная деталь для нас.
-            </div>
-          </section>
-          <section
-            id="screen-qr"
-            class="screen qr-panel"
-            aria-labelledby="qr-heading"
+          <div id="staff-grid" class="staff-grid" aria-busy="true"></div>
+          <button
+            class="secondary-button"
+            id="retry-staff"
+            type="button"
             hidden
           >
-            <div class="qr-topline">
-              <button class="text-button" id="back-btn" type="button">
-                <span aria-hidden="true">←</span> К выбору
-              </button>
-              <p>Возврат через <span id="timer">20</span> с</p>
-            </div>
-            <h2 id="qr-heading" tabindex="-1">
-              Ваш бариста — <span id="qr-barista-name"></span>
-            </h2>
-            <p class="panel-description">
-              Откройте камеру телефона и наведите её на код.
-            </p>
-            <div class="qr-frame">
-              <div
-                id="qrcode"
-                role="img"
-                aria-label="QR-код для отзыва о выбранном бариста"
-              ></div>
-            </div>
-            <div class="qr-actions">
-              <a class="feedback-link" id="feedback-link" href="feedback.html"
-                >Открыть отзыв <span aria-hidden="true">↗</span></a
-              >
-              <button id="extend-timer" type="button">Ещё 20 секунд</button>
-            </div>
-            <div class="timer-track" aria-hidden="true">
-              <div id="timer-progress"></div>
-            </div>
-            <p id="qr-status" role="status" class="qr-status"></p>
-          </section>
-        </div>
+            Попробовать снова
+          </button>
+        </section>
+        <section
+          id="screen-qr"
+          class="screen qr-panel"
+          aria-labelledby="qr-heading"
+          hidden
+        >
+          <div class="qr-topline">
+            <button class="text-button" id="back-btn" type="button">
+              <span aria-hidden="true">←</span> К выбору
+            </button>
+            <p>Возврат через <span id="timer">20</span> с</p>
+          </div>
+          <h2 id="qr-heading" tabindex="-1">
+            Бариста: <span id="qr-barista-name"></span>
+          </h2>
+          <p class="panel-description">Сканируйте камерой телефона</p>
+          <div class="qr-frame">
+            <div
+              id="qrcode"
+              role="img"
+              aria-label="QR-код для отзыва о выбранном бариста"
+            ></div>
+          </div>
+          <div class="qr-actions">
+            <a class="feedback-link" id="feedback-link" href="feedback.html"
+              >Открыть отзыв <span aria-hidden="true">↗</span></a
+            >
+            <button id="extend-timer" type="button">Ещё 20 секунд</button>
+          </div>
+          <div class="timer-track" aria-hidden="true">
+            <div id="timer-progress"></div>
+          </div>
+          <p id="qr-status" role="status" class="qr-status"></p>
+        </section>
+        <a id="entry-mode-link" class="entry-mode-link" href="?kiosk=1"
+          >Показать QR-коды</a
+        >
       </main>
-      <footer class="site-footer">
-        <span>С заботой о каждом госте.</span
-        ><span>На берегу Каспия · Актау</span>
-      </footer>
       <noscript
         ><p class="noscript">
-          Включите JavaScript, чтобы выбрать бариста и оставить отзыв.
+          Включите JavaScript, чтобы оставить отзыв.
         </p></noscript
       >
     </div>

@@ -82,6 +82,7 @@ export function initAppearance() {
   visibility();
   theme();
   motion();
-  document.getElementById("demo-banner").hidden =
-    new URLSearchParams(location.search).get("demo") !== "1";
+  const demo = new URLSearchParams(location.search).get("demo") === "1";
+  document.getElementById("demo-banner").hidden = !demo;
+  if (demo) document.querySelector(".brand").href = "./?demo=1";
 }

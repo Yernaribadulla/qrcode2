@@ -20,12 +20,9 @@ const ratingCaption = document.getElementById("rating-caption");
 const error = document.getElementById("form-error");
 let submitting = false;
 if (staff) {
-  document.getElementById("barista-label").textContent = "ВАШ БАРИСТА";
+  document.getElementById("barista-label").textContent = "Бариста:";
   document.getElementById("barista-name").textContent =
     staff.charAt(0).toUpperCase() + staff.slice(1);
-  document.getElementById("barista-initial").textContent = staff
-    .charAt(0)
-    .toUpperCase();
 }
 async function recordScan() {
   if (demo || !staff) return;
@@ -129,7 +126,7 @@ form.addEventListener("submit", async (event) => {
   } catch {
     busy(false);
     error.textContent =
-      "Не удалось отправить отзыв. Проверьте интернет и попробуйте ещё раз — ваша оценка и текст сохранены на этой странице.";
+      "Не удалось отправить. Попробуйте ещё раз — оценка и текст сохранены.";
     error.hidden = false;
   }
 });

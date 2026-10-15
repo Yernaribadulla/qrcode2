@@ -1,6 +1,7 @@
 import { initAppearance } from "./src/appearance.js";
 import { config, demoNames } from "./src/config.js";
 import { loadStaff, feedbackURL } from "./src/data.js";
+import { entryMode } from "./src/flow.js";
 
 initAppearance();
 const demo = new URLSearchParams(location.search).get("demo") === "1";
@@ -11,6 +12,20 @@ const mainScreen = document.getElementById("screen-main");
 const qrScreen = document.getElementById("screen-qr");
 const timer = document.getElementById("timer");
 const progress = document.getElementById("timer-progress");
+const wideScreen = matchMedia("(min-width: 768px) and (pointer: fine)");
+const modeLink = document.getElementById("entry-mode-link");
+const mode = () => entryMode(location.search, wideScreen.matches);
+function updateModeLink() {
+  const next = new URL(location.href);
+  next.searchParams.delete("direct");
+  next.searchParams.delete("kiosk");
+  next.searchParams.set(mode() === "qr" ? "direct" : "kiosk", "1");
+  modeLink.href = next.href;
+  modeLink.textContent =
+    mode() === "qr" ? "Открывать отзывы без QR" : "Показать QR-коды";
+}
+wideScreen.addEventListener("change", updateModeLink);
+updateModeLink();
 let loading = false;
 let deadline = 0;
 let interval;
@@ -58,8 +73,7 @@ function openQR(member, button) {
     });
   } catch {
     qrFrame.hidden = true;
-    qrStatus.textContent =
-      "Не удалось показать QR-код. Откройте отзыв по ссылке ниже.";
+    qrStatus.textContent = "QR недоступен. Откройте отзыв по ссылке.";
   }
   document.getElementById("qr-barista-name").textContent = member.name;
   document.getElementById("feedback-link").href = url;
@@ -72,8 +86,8 @@ function openQR(member, button) {
 function renderStaff(members) {
   grid.replaceChildren(
     ...members.map((member, index) => {
-      const button = document.createElement("button");
-      button.type = "button";
+      const button = document.createElement("a");
+      button.href = feedbackURL(member.id, location.href, demo);
       button.className = "staff-card";
       button.dataset.id = member.id;
       button.style.setProperty("--card-index", String(Math.min(index, 8)));
@@ -90,16 +104,25 @@ function renderStaff(members) {
       const name = document.createElement("span");
       name.className = "staff-name";
       name.textContent = member.name;
-      const role = document.createElement("span");
-      role.className = "staff-role";
-      role.textContent = "Бариста";
       const arrow = document.createElement("span");
       arrow.className = "staff-arrow";
-      arrow.textContent = "↗";
+      arrow.textContent = "→";
       arrow.setAttribute("aria-hidden", "true");
-      detail.append(name, role);
+      detail.append(name);
       button.append(initial, detail, arrow);
-      button.addEventListener("click", () => openQR(member, button));
+      button.addEventListener("click", (event) => {
+        if (
+          mode() === "qr" &&
+          event.button === 0 &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          !event.altKey
+        ) {
+          event.preventDefault();
+          openQR(member, button);
+        }
+      });
       return button;
     }),
   );
