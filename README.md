@@ -89,4 +89,3 @@ tests/                  Unit и Playwright / axe / jsQR
 ```
 
 Обоснование интерфейса и границы проверки: [docs/design.md](docs/design.md). Сторонний генератор QR: [vendor/qrcodejs-LICENSE](vendor/qrcodejs-LICENSE).
-
